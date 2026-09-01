@@ -58,11 +58,22 @@ typecheck → test → build` on every push to `main` and every PR.
 
 ```
 src/
-  app/            App Router routes, layout, global styles
-  components/ui/   shadcn/ui primitives
-  lib/            Shared utilities (cn, …)
+  app/                 App Router routes, layout, global styles
+  env.ts               Typed, validated environment
+  components/
+    ui/                shadcn/ui primitives
+    viewer/            PDF reader + chat + define popover        (M3/M5/M6)
+  lib/
+    utils.ts           Shared helpers (cn, …)
+    pdf/               Layout-aware extraction + chunking        (M3)
+    retrieval/         RetrievalService + hybrid strategies      (M4/M5)
+    ai/                Model access via AI SDK + Gateway         (M5/M7)
+    vector/            VectorStore: IndexedDB + pgvector         (M4/M8)
+    auth/              Clerk, gated on `authEnabled`             (M8)
+    db/                Neon Postgres client + schema             (M8)
+  styles/
+    tokens.css         Design tokens, single source of truth    (M1)
 ```
 
-Further directories (`lib/retrieval`, `lib/pdf`, `lib/ai`, `lib/vector`,
-`lib/auth`, `lib/db`, `components/viewer`, `styles/tokens`) land with their
-milestones.
+The `lib/*` and `components/viewer` folders are placeholder modules for now;
+each is filled in the milestone shown.
