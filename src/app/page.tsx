@@ -13,8 +13,8 @@ export default function Home() {
           document-grounded chat.
         </p>
         <p className="text-muted-foreground text-sm">
-          Disclaimer! Clairo helps you understand your document. It's not a medical device
-          and doesn't replace your doctor.
+          Disclaimer! Clairo helps you understand your document. It's not a
+          medical device and doesn't replace your doctor.
         </p>
       </div>
       <div>
