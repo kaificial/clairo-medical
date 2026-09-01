@@ -25,6 +25,7 @@
   --color-success-foreground: var(--success-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
+  --color-hero-lines: var(--hero-lines);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
@@ -61,5 +62,11 @@
   ::selection {
     background-color: var(--highlight);
     color: var(--highlight-foreground);
+  }
+}
+
+@keyframes hero-bloom-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

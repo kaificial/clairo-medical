@@ -25,10 +25,10 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col">
-      <section className="relative flex min-h-[88vh] items-center overflow-hidden">
-        <HeroMotif className="pointer-events-none absolute top-1/2 left-1/2 -z-10 aspect-square w-[max(1600px,140vw)] max-w-none -translate-x-1/2 -translate-y-1/2 opacity-80 select-none" />
-        <div className="mx-auto max-w-2xl px-6 py-20 text-center">
+    <main className="relative flex flex-1 flex-col overflow-x-clip">
+      <HeroMotif className="pointer-events-none absolute top-0 left-1/2 -z-10 aspect-square w-[max(1500px,135vw)] max-w-none -translate-x-1/2 -translate-y-[32%] select-none" />
+      <section>
+        <div className="mx-auto max-w-2xl px-6 pt-32 pb-16 text-center sm:pt-48">
           <h1 className="font-serif text-[clamp(2.75rem,7vw,4.75rem)] leading-[1.15] tracking-tight text-balance">
             Your medical report,{" "}
             <mark className="bg-highlight text-highlight-foreground rounded-[0.15em] box-decoration-clone px-1.5">
@@ -62,7 +62,7 @@ export default function Home() {
 
       <section
         id="how"
-        className="mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-16"
+        className="mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-12"
       >
         <Reveal>
           <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
@@ -84,7 +84,7 @@ export default function Home() {
 
       <section
         id="privacy"
-        className="mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-16"
+        className="mx-auto w-full max-w-5xl scroll-mt-24 px-6 py-12"
       >
         <Reveal className="bg-card border-border flex flex-col gap-4 rounded-xl border p-8">
           <h2 className="font-serif text-2xl tracking-tight">
@@ -99,7 +99,7 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <section className="mx-auto w-full max-w-2xl px-6 py-20 text-center">
+      <section className="mx-auto w-full max-w-2xl px-6 py-16 text-center">
         <Reveal>
           <p className="font-serif text-3xl tracking-tight text-balance">
             Bring the report you don't understand yet.
