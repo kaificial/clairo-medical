@@ -1,0 +1,11 @@
+# Build output & deps
+.next/
+out/
+build/
+coverage/
+node_modules/
+next-env.d.ts
+pnpm-lock.yaml
+
+# Generated
+src/app/favicon.ico
