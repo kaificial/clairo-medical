@@ -39,16 +39,20 @@ export type Extraction =
 export type PdfViewerProps = {
   file: string;
   className?: string;
+  /** Page to show so search results can jump to a page. */
+  page: number;
+  onPageChange: (page: number) => void;
   onExtracted?: (document: ExtractedDocument) => void;
 };
 
 export function PdfViewerView({
   file,
   className,
+  page: requestedPage,
+  onPageChange,
   onExtracted,
 }: PdfViewerProps) {
   const [numPages, setNumPages] = useState(0);
-  const [page, setPage] = useState(1);
   const [scale, setScale] = useState(DEFAULT_SCALE);
   const [status, setStatus] = useState<Status>("loading");
   const [extraction, setExtraction] = useState<Extraction>({ status: "idle" });
@@ -85,13 +89,17 @@ export function PdfViewerView({
   }
 
   const busy = status !== "ready";
+  const last = numPages || 1;
+  const page = Math.min(Math.max(1, requestedPage), last);
+
+  const goToPage = useCallback(
+    (next: number) => onPageChange(Math.min(Math.max(1, next), last)),
+    [onPageChange, last],
+  );
 
   const changePage = useCallback(
-    (delta: number) =>
-      setPage((current) =>
-        Math.min(Math.max(1, current + delta), numPages || 1),
-      ),
-    [numPages],
+    (delta: number) => goToPage(page + delta),
+    [goToPage, page],
   );
 
   const changeScale = useCallback(
@@ -117,11 +125,11 @@ export function PdfViewerView({
         break;
       case "Home":
         event.preventDefault();
-        setPage(1);
+        goToPage(1);
         break;
       case "End":
         event.preventDefault();
-        setPage(numPages || 1);
+        goToPage(last);
         break;
       case "+":
       case "=":
@@ -226,7 +234,6 @@ export function PdfViewerView({
           file={file}
           onLoadSuccess={(pdf) => {
             setNumPages(pdf.numPages);
-            setPage((p) => Math.min(p, pdf.numPages));
             setStatus("ready");
             void readText(pdf);
           }}
