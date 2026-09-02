@@ -7,12 +7,14 @@ import {
   Plus,
   RotateCcw,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 
 import { Button } from "@/components/ui/button";
+import { extractFromPdf } from "@/lib/pdf";
+import type { ExtractedDocument, TextContentSource } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -27,16 +29,60 @@ const DEFAULT_SCALE = 1.1;
 
 type Status = "loading" | "ready" | "error";
 
+/** Progress of the text pass that runs with rendering. */
+export type Extraction =
+  | { status: "idle" }
+  | { status: "reading"; page: number; total: number }
+  | { status: "ready"; document: ExtractedDocument }
+  | { status: "error" };
+
 export type PdfViewerProps = {
   file: string;
   className?: string;
+  onExtracted?: (document: ExtractedDocument) => void;
 };
 
-export function PdfViewerView({ file, className }: PdfViewerProps) {
+export function PdfViewerView({
+  file,
+  className,
+  onExtracted,
+}: PdfViewerProps) {
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [scale, setScale] = useState(DEFAULT_SCALE);
   const [status, setStatus] = useState<Status>("loading");
+  const [extraction, setExtraction] = useState<Extraction>({ status: "idle" });
+
+  const extractionRef = useRef<AbortController | null>(null);
+
+  useEffect(
+    () => () => {
+      extractionRef.current?.abort();
+      extractionRef.current = null;
+    },
+    [],
+  );
+
+  async function readText(pdf: TextContentSource) {
+    extractionRef.current?.abort();
+    const controller = new AbortController();
+    extractionRef.current = controller;
+
+    setExtraction({ status: "reading", page: 0, total: pdf.numPages });
+
+    try {
+      const document = await extractFromPdf(pdf, {
+        signal: controller.signal,
+        onProgress: (current, total) =>
+          setExtraction({ status: "reading", page: current, total }),
+      });
+      if (controller.signal.aborted) return;
+      setExtraction({ status: "ready", document });
+      onExtracted?.(document);
+    } catch {
+      if (!controller.signal.aborted) setExtraction({ status: "error" });
+    }
+  }
 
   const busy = status !== "ready";
 
@@ -126,6 +172,8 @@ export function PdfViewerView({ file, className }: PdfViewerProps) {
           </Button>
         </div>
 
+        <TextStatus extraction={extraction} />
+
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -176,10 +224,11 @@ export function PdfViewerView({ file, className }: PdfViewerProps) {
       >
         <Document
           file={file}
-          onLoadSuccess={({ numPages: n }) => {
-            setNumPages(n);
-            setPage((p) => Math.min(p, n));
+          onLoadSuccess={(pdf) => {
+            setNumPages(pdf.numPages);
+            setPage((p) => Math.min(p, pdf.numPages));
             setStatus("ready");
+            void readText(pdf);
           }}
           onLoadError={() => setStatus("error")}
           loading={<ViewerMessage>Loading document...</ViewerMessage>}
@@ -200,6 +249,27 @@ export function PdfViewerView({ file, className }: PdfViewerProps) {
         </Document>
       </div>
     </div>
+  );
+}
+
+function TextStatus({ extraction }: { extraction: Extraction }) {
+  if (extraction.status === "idle") return null;
+
+  const label =
+    extraction.status === "reading"
+      ? `Reading text ${extraction.page}/${extraction.total}`
+      : extraction.status === "ready"
+        ? "Text ready"
+        : "Text unavailable";
+
+  return (
+    <span
+      className="text-muted-foreground hidden text-xs sm:inline"
+      role="status"
+      aria-live="polite"
+    >
+      {label}
+    </span>
   );
 }
 

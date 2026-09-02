@@ -1,2 +1,3 @@
-// PDF reader shell + chat panel + selection tooltip / define popover; Zustand viewer store. M3/M5/M6.
-export {};
+export { DocumentWorkspace } from "./document-workspace";
+export { PdfViewer } from "./pdf-viewer";
+export type { Extraction, PdfViewerProps } from "./pdf-viewer-view";

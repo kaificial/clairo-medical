@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-/** GitHub mark. */
+/** GitHub logo. */
 export function GithubIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...props}>

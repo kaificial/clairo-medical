@@ -17,5 +17,5 @@ const PdfViewerView = dynamic(
 );
 
 export function PdfViewer(props: PdfViewerProps) {
-  return <PdfViewerView {...props} />;
+  return <PdfViewerView key={props.file} {...props} />;
 }
