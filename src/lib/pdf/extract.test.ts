@@ -4,24 +4,28 @@ import { fileURLToPath } from "node:url";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { extractPage, fromPdfJsItems } from "./extract";
-import type { ExtractedPage, TableBlock } from "./types";
+import { extractDocument, extractPage, fromPdfJsItems } from "./extract";
+import type { ExtractedPage, TableBlock, TextItem } from "./types";
 
 const samplePath = fileURLToPath(
   new URL("../../../public/example-medical.pdf", import.meta.url),
 );
 
 let pages: ExtractedPage[] = [];
+let items: TextItem[][] = [];
 
 beforeAll(async () => {
   const data = new Uint8Array(readFileSync(samplePath));
   const doc = await getDocument({ data, isEvalSupported: false }).promise;
 
   pages = [];
+  items = [];
   for (let n = 1; n <= doc.numPages; n += 1) {
     const page = await doc.getPage(n);
     const content = await page.getTextContent();
-    pages.push(extractPage(fromPdfJsItems(content.items), n));
+    const pageItems = fromPdfJsItems(content.items);
+    items.push(pageItems);
+    pages.push(extractPage(pageItems, n));
   }
 });
 
@@ -75,5 +79,33 @@ describe("extracting a real discharge summary", () => {
     const cells = rowsOf(pages[0]!).flat();
 
     expect(cells).toContain("Patient Name: Smith, John");
+  });
+});
+
+describe("extracting the same report as one document", () => {
+  it("drops the running page header", () => {
+    const text = extractDocument(items)
+      .pages.flatMap((page) => page.blocks.map((block) => block.text))
+      .join("\n");
+
+    expect(text).not.toMatch(/Page \d of 3/);
+  });
+
+  it("keeps the clinical content", () => {
+    const text = extractDocument(items)
+      .pages.flatMap((page) => page.blocks.map((block) => block.text))
+      .join("\n");
+
+    expect(text).toContain("Pyelonephritis");
+    expect(text).toContain("Creatinine");
+  });
+
+  it("reads a section title that carries a parenthetical", () => {
+    const headings = extractDocument(items)
+      .pages.flatMap((page) => page.blocks)
+      .filter((block) => block.kind === "heading")
+      .map((block) => block.text);
+
+    expect(headings).toContain("DIAGNOSIS (Co-Morbidities and Risks)");
   });
 });

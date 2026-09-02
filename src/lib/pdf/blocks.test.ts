@@ -48,6 +48,12 @@ describe("isHeading", () => {
     expect(isHeading(line([["LIPID PANEL", 0]], 10), 10)).toBe(true);
   });
 
+  it("accepts an all-caps title with a mixed-case parenthetical", () => {
+    expect(
+      isHeading(line([["DIAGNOSIS (Co-Morbidities and Risks)", 0]], 10), 10),
+    ).toBe(true);
+  });
+
   it("rejects ordinary prose at body size", () => {
     expect(isHeading(line([["Recommend repeat testing.", 0]], 10), 10)).toBe(
       false,

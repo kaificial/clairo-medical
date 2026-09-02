@@ -30,7 +30,8 @@ export function isHeading(line: Line, body: number): boolean {
   if (text.length === 0 || text.length > MAX_HEADING_LENGTH) return false;
   if (body > 0 && line.fontSize >= body * HEADING_SIZE_RATIO) return true;
 
-  return text === text.toUpperCase() && /[A-Z]/.test(text);
+  const shouted = text.replace(/\([^)]*\)/g, "").trim();
+  return shouted === shouted.toUpperCase() && /[A-Z]/.test(shouted);
 }
 
 function headingLevel(fontSize: number, body: number): number {

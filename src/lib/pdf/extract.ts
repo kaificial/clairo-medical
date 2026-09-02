@@ -1,4 +1,5 @@
 import { toBlocks } from "./blocks";
+import { stripFurniture } from "./furniture";
 import { groupIntoLines } from "./lines";
 import type { ExtractedDocument, ExtractedPage, TextItem } from "./types";
 
@@ -28,6 +29,17 @@ export function extractPage(items: TextItem[], page: number): ExtractedPage {
   return { page, blocks: toBlocks(groupIntoLines(items, page), page) };
 }
 
+/**
+ * Extract a whole document. Running headers and footers are only visible with
+ * every page in hand, so this is not a loop over `extractPage`.
+ */
 export function extractDocument(pages: TextItem[][]): ExtractedDocument {
-  return { pages: pages.map((items, index) => extractPage(items, index + 1)) };
+  const lines = pages.map((items, index) => groupIntoLines(items, index + 1));
+
+  return {
+    pages: stripFurniture(lines).map((pageLines, index) => ({
+      page: index + 1,
+      blocks: toBlocks(pageLines, index + 1),
+    })),
+  };
 }
