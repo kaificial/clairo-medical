@@ -94,10 +94,26 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    /** Vercel AI Gateway key */
+    AI_GATEWAY_API_KEY: z.string().min(1).optional(),
+    AI_EMBEDDING_MODEL: z
+      .string()
+      .min(1)
+      .default("openai/text-embedding-3-small"),
+    AI_CHAT_MODEL: z.string().min(1).default("anthropic/claude-sonnet-5"),
   }),
   client: z.object({}),
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
+    AI_EMBEDDING_MODEL: process.env.AI_EMBEDDING_MODEL,
+    AI_CHAT_MODEL: process.env.AI_CHAT_MODEL,
   },
   skipValidation: isFlagEnabled(process.env.SKIP_ENV_VALIDATION),
 });
+
+/**
+ * Whether cloud AI is configured. Clairo reads and searches a report without
+ * it, so every AI path has to check this rather than assume a key.
+ */
+export const aiEnabled: boolean = env.AI_GATEWAY_API_KEY !== undefined;

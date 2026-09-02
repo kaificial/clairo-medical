@@ -1,2 +1,8 @@
-// Model access via Vercel AI SDK v6 + AI Gateway ("provider/model"); chat, embeddings, structured output; cloud + web-llm adapters. M5/M7.
-export {};
+export { askQuestion } from "./chat-client";
+export { parseCitations } from "./citations";
+export { embedViaApi } from "./embed-client";
+export { AiRequestFailedError, AiUnavailableError } from "./errors";
+export type { AskOptions } from "./chat-client";
+export type { AnswerPart } from "./citations";
+export type { ChatMessage } from "./prompt";
+export type { EmbeddingResult } from "./types";
