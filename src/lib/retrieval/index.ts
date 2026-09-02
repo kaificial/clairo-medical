@@ -1,2 +1,10 @@
-// RetrievalService + strategy interface (local-hybrid, local-dense, full-context, remote-pgvector); BM25 + dense + RRF; groundedness guard. M4/M5.
-export {};
+export { buildLexicalIndex } from "./bm25";
+export { denseStrategy, embeddingText, indexDocument } from "./dense";
+export { fuseRankings } from "./rrf";
+export { createRetrievalService, lexicalStrategy } from "./service";
+export { snippet } from "./snippet";
+export { tokenize } from "./tokenize";
+export type { LexicalIndex, RetrievalHit } from "./bm25";
+export type { DenseOptions, Embedder } from "./dense";
+export type { FusionOptions } from "./rrf";
+export type { RetrievalService, RetrievalStrategy } from "./service";
