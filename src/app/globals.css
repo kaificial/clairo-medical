@@ -65,6 +65,11 @@
   }
 }
 
+.textLayer span::selection {
+  background-color: color-mix(in srgb, var(--highlight), transparent 30%);
+  color: transparent;
+}
+
 @keyframes hero-bloom-spin {
   to {
     transform: rotate(360deg);
