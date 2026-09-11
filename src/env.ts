@@ -89,23 +89,27 @@ function isFlagEnabled(value: string | undefined): boolean {
   return normalized !== "" && normalized !== "0" && normalized !== "false";
 }
 
+export const modelIdSchema = z
+  .string()
+  .regex(
+    /^[\w.-]+\/[\w.:-]+$/,
+    'Expected a model id of the form "provider/model", such as "google/gemini-3.7-flash". This is not where an API key goes.',
+  );
+
 export const env = createEnv({
   server: z.object({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    /** Vercel AI Gateway key */
-    AI_GATEWAY_API_KEY: z.string().min(1).optional(),
-    AI_EMBEDDING_MODEL: z
-      .string()
-      .min(1)
-      .default("openai/text-embedding-3-small"),
-    AI_CHAT_MODEL: z.string().min(1).default("anthropic/claude-sonnet-5"),
+    /** Google AI Studio key, called directly*/
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+    AI_EMBEDDING_MODEL: modelIdSchema.default("google/gemini-embedding-001"),
+    AI_CHAT_MODEL: modelIdSchema.default("google/gemini-3.7-flash"),
   }),
   client: z.object({}),
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    AI_GATEWAY_API_KEY: process.env.AI_GATEWAY_API_KEY,
+    GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     AI_EMBEDDING_MODEL: process.env.AI_EMBEDDING_MODEL,
     AI_CHAT_MODEL: process.env.AI_CHAT_MODEL,
   },
@@ -113,7 +117,8 @@ export const env = createEnv({
 });
 
 /**
- * Whether cloud AI is configured. Clairo reads and searches a report without
- * it, so every AI path has to check this rather than assume a key.
+ * Every AI path checks whats configured rather than assume a key.
  */
-export const aiEnabled: boolean = env.AI_GATEWAY_API_KEY !== undefined;
+export const providerKeys = {
+  google: env.GOOGLE_GENERATIVE_AI_API_KEY !== undefined,
+} as const;

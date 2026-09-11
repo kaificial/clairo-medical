@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { createEnv, env, EnvValidationError } from "./env";
+import { createEnv, env, EnvValidationError, modelIdSchema } from "./env";
 
 const server = z.object({
   DATABASE_URL: z.string().min(1),
@@ -128,5 +128,34 @@ describe("createEnv", () => {
 describe("env", () => {
   it("reflects the ambient NODE_ENV (defaulting to development)", () => {
     expect(env.NODE_ENV).toBe(process.env.NODE_ENV ?? "development");
+  });
+});
+
+describe("modelIdSchema", () => {
+  it("accepts a provider/model id", () => {
+    expect(modelIdSchema.safeParse("google/gemini-3.7-flash").success).toBe(
+      true,
+    );
+    expect(modelIdSchema.safeParse("google/gemini-embedding-001").success).toBe(
+      true,
+    );
+  });
+
+  it("rejects a key pasted into a model variable", () => {
+    expect(modelIdSchema.safeParse("sk-ant-api03-notamodel").success).toBe(
+      false,
+    );
+  });
+
+  it("rejects a bare model name with no provider", () => {
+    expect(modelIdSchema.safeParse("gemini-3.7-flash").success).toBe(false);
+  });
+
+  it("keeps the rejected value out of the message, in case it is a secret", () => {
+    const result = modelIdSchema.safeParse("sk-ant-api03-notamodel");
+
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(z.prettifyError(result.error)).not.toContain("notamodel");
   });
 });

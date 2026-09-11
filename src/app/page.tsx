@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { DemoVideo } from "@/components/demo-video";
 import { HeroMotif } from "@/components/hero-motif";
 import { Reveal } from "@/components/motion-primitives";
 import { Button } from "@/components/ui/button";
@@ -26,37 +27,43 @@ const STEPS = [
 export default function Home() {
   return (
     <main className="relative flex flex-1 flex-col overflow-x-clip">
-      <HeroMotif className="pointer-events-none absolute top-0 left-1/2 -z-10 aspect-square w-[max(1500px,135vw)] max-w-none -translate-x-1/2 -translate-y-[32%] select-none" />
       <section>
-        <div className="mx-auto max-w-2xl px-6 pt-32 pb-16 text-center sm:pt-48">
-          <h1 className="font-serif text-[clamp(2.75rem,7vw,4.75rem)] leading-[1.15] tracking-tight text-balance">
-            Your medical report,{" "}
-            <mark className="bg-highlight text-highlight-foreground rounded-[0.15em] box-decoration-clone px-1.5">
-              in plain language
-            </mark>
-          </h1>
+        <div className="mx-auto grid max-w-5xl grid-cols-1 items-start gap-12 px-6 pt-28 pb-16 sm:pt-36 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
+          <div className="max-w-xl">
+            <div className="relative">
+              <HeroMotif className="pointer-events-none absolute top-1/2 left-1/2 -z-10 aspect-square w-[max(900px,110vw)] max-w-none -translate-x-1/2 -translate-y-1/2 select-none lg:w-[1150px]" />
+              <h1 className="font-serif text-[clamp(2.5rem,5.5vw,4.25rem)] leading-[1.15] tracking-tight text-balance">
+                Your medical report,{" "}
+                <mark className="bg-highlight text-highlight-foreground rounded-[0.15em] box-decoration-clone px-1.5">
+                  in plain language
+                </mark>
+              </h1>
+            </div>
 
-          <p className="text-muted-foreground mx-auto mt-6 max-w-md text-lg text-pretty">
-            Highlight a term for a definition. Ask questions. Get answers with
-            citations.
-          </p>
+            <p className="text-muted-foreground mt-6 max-w-md text-lg text-pretty">
+              Highlight a term for a definition. Ask questions. Get answers with
+              citations.
+            </p>
 
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="rounded-pill">
-              <Link href="/viewer">
-                Start analysis
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="secondary"
-              className="rounded-pill"
-            >
-              <Link href="/sign-in">Sign in</Link>
-            </Button>
+            <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <Button asChild size="lg" className="rounded-pill">
+                <Link href="/viewer">
+                  Start analysis
+                  <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="secondary"
+                className="rounded-pill"
+              >
+                <Link href="/sign-in">Sign in</Link>
+              </Button>
+            </div>
           </div>
+
+          <DemoVideo className="w-full lg:mt-3 lg:justify-self-end" />
         </div>
       </section>
 
