@@ -10,13 +10,13 @@ export interface AskOptions {
   passages: readonly Chunk[];
   history?: readonly ChatMessage[];
   signal?: AbortSignal;
-  /** Called with each chunk of the answer as it arrives. */
+  /** Called with each chunk of the answer when it arrives. */
   onDelta?: (delta: string) => void;
 }
 
 /**
  * Ask a question about the open report and stream the answer back. Resolves
- * with the whole answer once the stream ends.
+ * with the answer once the stream ends.
  */
 export async function askQuestion({
   question,
