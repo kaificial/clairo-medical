@@ -2,21 +2,15 @@ import "server-only";
 
 import { embed, embedMany } from "ai";
 
-import { aiEnabled, env } from "@/env";
+import { env } from "@/env";
 
+import { AiNotConfiguredError } from "./errors";
+import { embeddingModel, embeddingsEnabled } from "./model";
 import type { EmbeddingResult } from "./types";
 
 /** Guard rails on a route that spends money on someone else's API. */
 export const MAX_VALUES = 400;
 export const MAX_CHARS = 400_000;
-
-export class AiNotConfiguredError extends Error {
-  override name = "AiNotConfiguredError";
-
-  constructor() {
-    super("No AI Gateway key is configured, so embeddings are unavailable.");
-  }
-}
 
 export class EmbeddingRequestTooLargeError extends Error {
   override name = "EmbeddingRequestTooLargeError";
@@ -38,24 +32,29 @@ function assertWithinLimits(values: readonly string[]): void {
 }
 
 /**
- * Embed report passages through the AI Gateway. Server only: the key cant
- * reach the browser, and the caller decides whether sending this text off the
- * device is actually acceptable.
+ * Embed report passages through whichever provider is configured
  */
 export async function embedValues(
   values: readonly string[],
 ): Promise<EmbeddingResult> {
-  if (!aiEnabled) throw new AiNotConfiguredError();
+  if (!embeddingsEnabled) throw new AiNotConfiguredError();
   assertWithinLimits(values);
 
-  const model = env.AI_EMBEDDING_MODEL;
-  if (values.length === 0) return { embeddings: [], model, dimensions: 0 };
+  const name = env.AI_EMBEDDING_MODEL;
+  if (values.length === 0)
+    return { embeddings: [], model: name, dimensions: 0 };
+
+  const model = embeddingModel(name);
 
   if (values.length === 1) {
     const { embedding } = await embed({ model, value: values[0] ?? "" });
-    return { embeddings: [embedding], model, dimensions: embedding.length };
+    return {
+      embeddings: [embedding],
+      model: name,
+      dimensions: embedding.length,
+    };
   }
 
   const { embeddings } = await embedMany({ model, values: [...values] });
-  return { embeddings, model, dimensions: embeddings[0]?.length ?? 0 };
+  return { embeddings, model: name, dimensions: embeddings[0]?.length ?? 0 };
 }

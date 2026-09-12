@@ -1,12 +1,12 @@
 import "server-only";
 
-import { streamText } from "ai";
-
-import { aiEnabled, env } from "@/env";
+import { env } from "@/env";
 import type { Chunk } from "@/lib/pdf";
 
-import { AiNotConfiguredError } from "./embeddings";
+import { AiNotConfiguredError } from "./errors";
+import { chatEnabled, languageModel } from "./model";
 import { buildChatPrompt, type ChatMessage } from "./prompt";
+import { streamAnswerEvents } from "./respond";
 
 export interface AnswerRequest {
   question: string;
@@ -24,7 +24,7 @@ export function streamAnswer({
   passages,
   history,
 }: AnswerRequest): Response {
-  if (!aiEnabled) throw new AiNotConfiguredError();
+  if (!chatEnabled) throw new AiNotConfiguredError();
 
   const { instructions, messages } = buildChatPrompt({
     question,
@@ -32,11 +32,9 @@ export function streamAnswer({
     history,
   });
 
-  const result = streamText({
-    model: env.AI_CHAT_MODEL,
+  return streamAnswerEvents({
+    model: languageModel(env.AI_CHAT_MODEL),
     instructions,
     messages,
   });
-
-  return result.toTextStreamResponse();
 }
