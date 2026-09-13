@@ -1,4 +1,3 @@
-# Build output & deps
 .next/
 out/
 build/
@@ -7,5 +6,8 @@ node_modules/
 next-env.d.ts
 pnpm-lock.yaml
 
-# Generated
-src/app/favicon.ico
+# generated
+evals/results.md
+evals/.cache/
+playwright-report/
+test-results/

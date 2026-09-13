@@ -23,7 +23,8 @@ export default defineConfig({
         test: {
           name: "eval",
           include: ["evals/**/*.eval.ts"],
-          // Model downloads on a cold cache take a while; the suites run in order.
+          // The first run downloads three models, which takes a while, so the
+          // eval runs one file at a time.
           testTimeout: 15 * 60 * 1000,
           hookTimeout: 60 * 1000,
           fileParallelism: false,

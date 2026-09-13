@@ -1,10 +1,9 @@
 import type { NextConfig } from "next";
 
-// Validate environment variables at build start; fail fast on a bad config.
+// Imported for its side effect: a bad environment variable fails the build
+// right here, with a readable message, instead of at runtime.
 import "./src/env";
 
-const nextConfig: NextConfig = {
-  // Options land with the milestones that need them (PPR, bundle analysis, …).
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
