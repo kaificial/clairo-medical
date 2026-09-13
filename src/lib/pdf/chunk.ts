@@ -1,9 +1,13 @@
-import type { Block, ExtractedDocument, TableBlock } from "./types";
+import type { ExtractedDocument, TableBlock } from "./types";
 
 const MAX_CHARS = 1200;
 const OVERLAP_CHARS = 160;
+const SENTENCE = /[^.!?]+(?:[.!?]+|$)/g;
 
-/** A retrieval unit: enough text to answer from and also small enough to embed. */
+/**
+ * A piece of the report for search and answers: big enough to answer from buut
+ * small enough to embed well.
+ */
 export interface Chunk {
   id: string;
   text: string;
@@ -13,17 +17,19 @@ export interface Chunk {
   kind: "prose" | "table";
 }
 
-export interface ChunkOptions {
-  maxChars?: number;
-  overlapChars?: number;
-}
-
 interface HeadingFrame {
   level: number;
   text: string;
 }
 
-/** Trim to the last limit characters */
+/** Prose collected so far for the chunk being built. */
+interface ProseBuffer {
+  text: string;
+  page: number;
+  endPage: number;
+  headings: string[];
+}
+
 function tailOf(text: string, limit: number): string {
   if (limit <= 0) return "";
   if (text.length <= limit) return text;
@@ -32,42 +38,37 @@ function tailOf(text: string, limit: number): string {
   return space === -1 ? tail : tail.slice(space + 1);
 }
 
-/** Break an oversized paragraph when a sentence ends. */
+/**
+ * Breaks a paragraph thats too long for one chunk at the ends of sentences. A
+ *  sentence longer than a whole chunk broken between words instead.
+ */
 function splitProse(text: string, maxChars: number): string[] {
   if (text.length <= maxChars) return [text];
 
-  const units = text.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [text];
   const parts: string[] = [];
   let current = "";
 
-  for (const unit of units) {
-    const piece = unit.trim();
-    if (!piece) continue;
-
-    if (piece.length > maxChars) {
-      if (current) {
-        parts.push(current);
-        current = "";
-      }
-      for (const word of piece.split(/\s+/)) {
-        const candidate = current ? `${current} ${word}` : word;
-        if (candidate.length > maxChars && current) {
-          parts.push(current);
-          current = word;
-        } else {
-          current = candidate;
-        }
-      }
-      continue;
-    }
-
-    const candidate = current ? `${current} ${piece}` : piece;
-    if (candidate.length > maxChars) {
+  function pack(piece: string) {
+    const joined = current ? `${current} ${piece}` : piece;
+    if (joined.length > maxChars && current) {
       parts.push(current);
       current = piece;
     } else {
-      current = candidate;
+      current = joined;
     }
+  }
+
+  for (const sentence of text.match(SENTENCE) ?? [text]) {
+    const piece = sentence.trim();
+    if (!piece) continue;
+
+    if (piece.length <= maxChars) {
+      pack(piece);
+      continue;
+    }
+    if (current) parts.push(current);
+    current = "";
+    piece.split(/\s+/).forEach(pack);
   }
 
   if (current) parts.push(current);
@@ -79,8 +80,8 @@ function rowText(row: readonly string[]): string {
 }
 
 /**
- * Split a table on row boundaries, repeating the header row so every part
- * still says what its columns mean.
+ * Splits a big table between rows and repeats the header row in each part, so
+ * every chunk still says what its columns mean.
  */
 function splitTable(block: TableBlock, maxChars: number): string[] {
   const [header, ...body] = block.rows;
@@ -89,16 +90,15 @@ function splitTable(block: TableBlock, maxChars: number): string[] {
 
   const headerLine = rowText(header);
   const parts: string[] = [];
-  let lines: string[] = [headerLine];
+  let lines = [headerLine];
   let length = headerLine.length;
 
   for (const row of body) {
     const line = rowText(row);
     if (lines.length > 1 && length + line.length + 1 > maxChars) {
       parts.push(lines.join("\n"));
-      lines = [headerLine, line];
-      length = headerLine.length + line.length + 1;
-      continue;
+      lines = [headerLine];
+      length = headerLine.length;
     }
     lines.push(line);
     length += line.length + 1;
@@ -108,23 +108,18 @@ function splitTable(block: TableBlock, maxChars: number): string[] {
   return parts;
 }
 
-/** Drop heading frames at or below `level" then push the new one. */
+/**
+ * A new heading closes any open sections at the same level or deeper then
+ * opens its own.
+ */
 function pushHeading(stack: HeadingFrame[], level: number, text: string) {
-  while (stack.length > 0) {
-    const top = stack.at(-1);
-    if (!top || top.level < level) break;
-    stack.pop();
-  }
+  while ((stack.at(-1)?.level ?? 0) >= level) stack.pop();
   stack.push({ level, text });
 }
 
-/**
- * Group blocks into overlapping heading aware chunks. Prose flows together up
- * to `maxChars"; tables stay whole unless they outgrow their own chunk
- */
 export function toChunks(
   document: ExtractedDocument,
-  options: ChunkOptions = {},
+  options: { maxChars?: number; overlapChars?: number } = {},
 ): Chunk[] {
   const maxChars = Math.max(1, options.maxChars ?? MAX_CHARS);
   const overlapChars = Math.max(
@@ -134,89 +129,68 @@ export function toChunks(
 
   const chunks: Chunk[] = [];
   const headings: HeadingFrame[] = [];
-  const perPage = new Map<number, number>();
+  const chunksPerPage = new Map<number, number>();
+  let prose: ProseBuffer | null = null;
 
-  let buffer = "";
-  let bufferPage = 0;
-  let bufferEndPage = 0;
-  let bufferHeadings: string[] = [];
+  const headingTrail = () => headings.map((frame) => frame.text);
 
-  function add(
-    text: string,
-    page: number,
-    endPage: number,
-    kind: Chunk["kind"],
-    trail: string[],
-  ) {
-    const body = text.trim();
-    if (!body) return;
-    const ordinal = (perPage.get(page) ?? 0) + 1;
-    perPage.set(page, ordinal);
-    chunks.push({
-      id: `p${page}#${ordinal}`,
-      text: body,
-      page,
-      endPage,
-      headings: trail,
-      kind,
-    });
+  function emit(chunk: Omit<Chunk, "id">) {
+    const text = chunk.text.trim();
+    if (!text) return;
+
+    const ordinal = (chunksPerPage.get(chunk.page) ?? 0) + 1;
+    chunksPerPage.set(chunk.page, ordinal);
+    chunks.push({ ...chunk, id: `p${chunk.page}#${ordinal}`, text });
   }
 
   function flush() {
-    if (!buffer.trim()) {
-      buffer = "";
-      return;
-    }
-    add(buffer, bufferPage, bufferEndPage, "prose", bufferHeadings);
-    buffer = "";
+    if (prose) emit({ ...prose, kind: "prose" });
+    prose = null;
   }
 
   function appendProse(text: string, page: number) {
-    const trail = headings.map((frame) => frame.text);
-
     for (const part of splitProse(text, maxChars)) {
-      if (!buffer) {
-        buffer = part;
-        bufferPage = page;
-        bufferEndPage = page;
-        bufferHeadings = trail;
+      if (prose && prose.text.length + part.length + 1 <= maxChars) {
+        prose.text = `${prose.text} ${part}`;
+        prose.endPage = page;
         continue;
       }
 
-      if (buffer.length + part.length + 1 <= maxChars) {
-        buffer = `${buffer} ${part}`;
-        bufferEndPage = page;
-        continue;
-      }
-
-      const carry = tailOf(buffer, overlapChars);
+      // Start the new chunk with the end of the last one so a sentence cut at
+      // the boundary is still whole in one of them
+      const carry = prose ? tailOf(prose.text, overlapChars) : "";
       flush();
-      buffer = carry ? `${carry} ${part}` : part;
-      bufferPage = page;
-      bufferEndPage = page;
-      bufferHeadings = trail;
+      prose = {
+        text: carry ? `${carry} ${part}` : part,
+        page,
+        endPage: page,
+        headings: headingTrail(),
+      };
     }
   }
 
-  const blocks: Block[] = document.pages.flatMap((page) => page.blocks);
+  for (const block of document.pages.flatMap((page) => page.blocks)) {
+    if (block.kind === "paragraph") {
+      appendProse(block.text, block.page);
+      continue;
+    }
 
-  for (const block of blocks) {
+    flush();
     if (block.kind === "heading") {
-      flush();
       pushHeading(headings, block.level, block.text);
       continue;
     }
 
-    if (block.kind === "table") {
-      flush();
-      const trail = headings.map((frame) => frame.text);
-      for (const part of splitTable(block, maxChars)) {
-        add(part, block.page, block.page, "table", trail);
-      }
-      continue;
+    const trail = headingTrail();
+    for (const text of splitTable(block, maxChars)) {
+      emit({
+        text,
+        page: block.page,
+        endPage: block.page,
+        headings: trail,
+        kind: "table",
+      });
     }
-
-    appendProse(block.text, block.page);
   }
 
   flush();

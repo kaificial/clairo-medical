@@ -1,15 +1,22 @@
-import type { Block, Line } from "./types";
+import type { Block, Line, TableBlock } from "./types";
 
 const HEADING_SIZE_RATIO = 1.12;
+const TOP_HEADING_RATIO = 1.6;
+const SECTION_HEADING_RATIO = 1.25;
 const MAX_HEADING_LENGTH = 70;
 const MIN_TABLE_ROWS = 2;
+const MIN_COLUMN_TOLERANCE = 4;
+const COLUMN_TOLERANCE_RATIO = 1.5;
 
-/** Most common line font size, used as the baseline for heading detection. */
+/**
+ * The most common font size rounded to half a point. That's the body text and the
+ * headings are measured against it.
+ */
 export function bodyFontSize(lines: Line[]): number {
   const counts = new Map<number, number>();
   for (const line of lines) {
-    const key = Math.round(line.fontSize * 2) / 2;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const size = Math.round(line.fontSize * 2) / 2;
+    counts.set(size, (counts.get(size) ?? 0) + 1);
   }
 
   let best = 0;
@@ -23,6 +30,10 @@ export function bodyFontSize(lines: Line[]): number {
   return best;
 }
 
+/**
+ * A heading is a short single cell line set bigger than body text or written in
+ * capitals like "DISCHARGE PLAN, etc." on the sample.
+ */
 export function isHeading(line: Line, body: number): boolean {
   if (line.cells.length > 1) return false;
 
@@ -37,54 +48,75 @@ export function isHeading(line: Line, body: number): boolean {
 function headingLevel(fontSize: number, body: number): number {
   if (body <= 0) return 2;
   const ratio = fontSize / body;
-  if (ratio >= 1.6) return 1;
-  if (ratio >= 1.25) return 2;
+  if (ratio >= TOP_HEADING_RATIO) return 1;
+  if (ratio >= SECTION_HEADING_RATIO) return 2;
   return 3;
 }
 
-function columnsAlign(anchors: number[], xs: number[], fontSize: number) {
-  const tolerance = Math.max(4, fontSize * 1.5);
-  let matched = 0;
-  for (const x of xs) {
-    if (anchors.some((anchor) => Math.abs(anchor - x) <= tolerance))
-      matched += 1;
-  }
-  const required = Math.max(2, Math.min(anchors.length, xs.length) - 1);
+/**
+ * Whether a lines cells start under the first rows columns give or take a
+ * little since extracted x positions drift.
+ */
+function alignsWith(first: Line, line: Line): boolean {
+  if (line.cells.length < 2) return false;
+
+  const tolerance = Math.max(
+    MIN_COLUMN_TOLERANCE,
+    first.fontSize * COLUMN_TOLERANCE_RATIO,
+  );
+  const anchors = first.cells.map((cell) => cell.x);
+  const matched = line.cells.filter((cell) =>
+    anchors.some((anchor) => Math.abs(anchor - cell.x) <= tolerance),
+  ).length;
+
+  const required = Math.max(2, Math.min(anchors.length, line.cells.length) - 1);
   return matched >= required;
 }
 
-/** How many consecutive lines from `start` share a column layout. */
+/**
+ * How many lines in a row, starting at `start` have the same column layout.
+ * 2 or more make a table.
+ */
 function tableRunLength(lines: Line[], start: number): number {
   const first = lines[start];
   if (!first || first.cells.length < 2) return 0;
 
-  const anchors = first.cells.map((cell) => cell.x);
-  let count = 1;
-
-  for (let i = start + 1; i < lines.length; i += 1) {
-    const line = lines[i];
-    if (!line || line.cells.length < 2) break;
-    if (
-      !columnsAlign(
-        anchors,
-        line.cells.map((c) => c.x),
-        first.fontSize,
-      )
-    )
-      break;
-    count += 1;
-  }
-
-  return count;
+  const rest = lines.slice(start + 1);
+  const breaks = rest.findIndex((line) => !alignsWith(first, line));
+  return 1 + (breaks === -1 ? rest.length : breaks);
 }
 
+/** A paragraph runs until the next heading or table. */
+function paragraphEnd(lines: Line[], start: number, body: number): number {
+  const next = start + 1;
+  const stop = lines
+    .slice(next)
+    .findIndex(
+      (line, offset) =>
+        isHeading(line, body) ||
+        tableRunLength(lines, next + offset) >= MIN_TABLE_ROWS,
+    );
+  return stop === -1 ? lines.length : next + stop;
+}
+
+function tableBlock(lines: Line[], page: number): TableBlock {
+  const rows = lines.map((line) => line.cells.map((cell) => cell.text));
+  return {
+    kind: "table",
+    page,
+    rows,
+    text: rows.map((row) => row.join(" | ")).join("\n"),
+  };
+}
+
+/** Sorts a pagess lines into headings, tables and paragraphs. */
 export function toBlocks(lines: Line[], page: number): Block[] {
   const body = bodyFontSize(lines);
   const blocks: Block[] = [];
-  let i = 0;
+  let start = 0;
 
-  while (i < lines.length) {
-    const line = lines[i];
+  while (start < lines.length) {
+    const line = lines[start];
     if (!line) break;
 
     if (isHeading(line, body)) {
@@ -94,39 +126,24 @@ export function toBlocks(lines: Line[], page: number): Block[] {
         text: line.text.trim(),
         level: headingLevel(line.fontSize, body),
       });
-      i += 1;
+      start += 1;
       continue;
     }
 
-    const run = tableRunLength(lines, i);
+    const run = tableRunLength(lines, start);
     if (run >= MIN_TABLE_ROWS) {
-      const rows = lines
-        .slice(i, i + run)
-        .map((row) => row.cells.map((cell) => cell.text));
-      blocks.push({
-        kind: "table",
-        page,
-        rows,
-        text: rows.map((row) => row.join(" | ")).join("\n"),
-      });
-      i += run;
+      blocks.push(tableBlock(lines.slice(start, start + run), page));
+      start += run;
       continue;
     }
 
-    const parts: string[] = [];
-    let j = i;
-    while (j < lines.length) {
-      const next = lines[j];
-      if (!next || isHeading(next, body)) break;
-      if (j > i && tableRunLength(lines, j) >= MIN_TABLE_ROWS) break;
-      parts.push(next.text.trim());
-      j += 1;
-    }
-
-    if (parts.length > 0) {
-      blocks.push({ kind: "paragraph", page, text: parts.join(" ") });
-    }
-    i = Math.max(j, i + 1);
+    const end = paragraphEnd(lines, start, body);
+    const text = lines
+      .slice(start, end)
+      .map((paragraphLine) => paragraphLine.text.trim())
+      .join(" ");
+    blocks.push({ kind: "paragraph", page, text });
+    start = end;
   }
 
   return blocks;

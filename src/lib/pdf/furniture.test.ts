@@ -12,8 +12,6 @@ function line(text: string, y: number, page = 1): Line {
     text,
   };
 }
-
-/** A page with a running header, a footer, and body text between them. */
 function page(header: string, body: string, footer: string, n: number) {
   return [line(header, 730, n), line(body, 400, n), line(footer, 60, n)];
 }

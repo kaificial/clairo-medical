@@ -1,20 +1,31 @@
 import type { Line } from "./types";
 
-/** Fraction of the content height at the top and bottom treated as margins. */
+/**
+ * The top and bottom 15% of a page's text is where running headers and footers
+ * are
+ */
 const EDGE_RATIO = 0.15;
 const MIN_PAGES = 2;
-/** Below this much vertical spread a page has no useful edges to trim. */
+/**
+ * A page with less vertical spread than this is mostly empty and doesnt have a real top
+ * or bottom to trim
+ */
 const MIN_EXTENT = 100;
 
 /**
- * Page numbers and dates change from page to page, so running headers are
- * compared by shape than by their exact text.
+ * Headers like "Page 2 of 3" change on every page so they're compared by
+ * shape with the digits blanked out, rather than by the exact text.
  */
 export function furnitureKey(text: string): string {
   return text.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ").trim();
 }
 
-function edgeBands(lines: Line[]): { top: number; bottom: number } | null {
+interface EdgeBands {
+  top: number;
+  bottom: number;
+}
+
+function edgeBands(lines: Line[]): EdgeBands | null {
   if (lines.length === 0) return null;
 
   const ys = lines.map((line) => line.y);
@@ -26,18 +37,14 @@ function edgeBands(lines: Line[]): { top: number; bottom: number } | null {
   return { top: max - band, bottom: min + band };
 }
 
-function inEdgeBand(line: Line, bands: { top: number; bottom: number }) {
+function inEdgeBand(line: Line, bands: EdgeBands): boolean {
   return line.y >= bands.top || line.y <= bands.bottom;
 }
 
-/**
- * Drop running headers and footers: lines near the top or bottom edge where
- * shape repeats across at least half the pages.
- */
 export function stripFurniture(pages: Line[][]): Line[][] {
   if (pages.length < MIN_PAGES) return pages;
 
-  const seen = new Map<string, Set<number>>();
+  const pagesByKey = new Map<string, Set<number>>();
 
   pages.forEach((lines, index) => {
     const bands = edgeBands(lines);
@@ -47,9 +54,9 @@ export function stripFurniture(pages: Line[][]): Line[][] {
       if (!inEdgeBand(line, bands)) continue;
       const key = furnitureKey(line.text);
       if (!key) continue;
-      const pagesWithKey = seen.get(key) ?? new Set<number>();
+      const pagesWithKey = pagesByKey.get(key) ?? new Set<number>();
       pagesWithKey.add(index);
-      seen.set(key, pagesWithKey);
+      pagesByKey.set(key, pagesWithKey);
     }
   });
 
@@ -61,8 +68,8 @@ export function stripFurniture(pages: Line[][]): Line[][] {
 
     return lines.filter((line) => {
       if (!inEdgeBand(line, bands)) return true;
-      const count = seen.get(furnitureKey(line.text))?.size ?? 0;
-      return count < threshold;
+      const repeats = pagesByKey.get(furnitureKey(line.text))?.size ?? 0;
+      return repeats < threshold;
     });
   });
 }

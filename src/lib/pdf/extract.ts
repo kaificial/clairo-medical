@@ -1,7 +1,17 @@
 import { toBlocks } from "./blocks";
 import { stripFurniture } from "./furniture";
 import { groupIntoLines } from "./lines";
-import type { ExtractedDocument, ExtractedPage, TextItem } from "./types";
+import type { ExtractedDocument, TextItem } from "./types";
+
+/**
+ * Just the part of pdf.js's PDFDocumentProxy we use to read text
+ */
+export interface TextContentSource {
+  numPages: number;
+  getPage(pageNumber: number): Promise<{
+    getTextContent(): Promise<{ items: readonly unknown[] }>;
+  }>;
+}
 
 function isTextItem(value: unknown): value is TextItem {
   if (typeof value !== "object" || value === null) return false;
@@ -14,8 +24,11 @@ function isTextItem(value: unknown): value is TextItem {
   );
 }
 
-/** Drop pdf.js marked-content entries and keep positioned text runs. */
-export function fromPdfJsItems(items: readonly unknown[]): TextItem[] {
+/**
+ * pdf.js mixes marked content entries in with the text
+ * We only want the positioned runs of text.
+ */
+function fromPdfJsItems(items: readonly unknown[]): TextItem[] {
   return items.filter(isTextItem).map((item) => ({
     str: item.str,
     transform: item.transform,
@@ -25,13 +38,36 @@ export function fromPdfJsItems(items: readonly unknown[]): TextItem[] {
   }));
 }
 
-export function extractPage(items: TextItem[], page: number): ExtractedPage {
-  return { page, blocks: toBlocks(groupIntoLines(items, page), page) };
+/**
+ * The positioned text of every page before any layout analysis.
+ * So OCR results can be swapped in later.
+ */
+export async function readPageItems(
+  pdf: TextContentSource,
+  {
+    signal,
+    onProgress,
+  }: {
+    signal?: AbortSignal;
+    onProgress?: (page: number, total: number) => void;
+  } = {},
+): Promise<TextItem[][]> {
+  const pages: TextItem[][] = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    signal?.throwIfAborted();
+    const content = await (await pdf.getPage(pageNumber)).getTextContent();
+    pages.push(fromPdfJsItems(content.items));
+    onProgress?.(pageNumber, pdf.numPages);
+  }
+
+  return pages;
 }
 
 /**
- * Extract a whole document. Running headers and footers are only visible with
- * every page in hand, so this is not a loop over `extractPage`.
+ * Turns every page text into headings, paragraphs and tables. Running headers
+ * and footers only show up when you compare pages so this works on the whole
+ * document
  */
 export function extractDocument(pages: TextItem[][]): ExtractedDocument {
   const lines = pages.map((items, index) => groupIntoLines(items, index + 1));

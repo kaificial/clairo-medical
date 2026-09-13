@@ -1,18 +1,7 @@
-export { bodyFontSize, isHeading, toBlocks } from "./blocks";
 export { toChunks } from "./chunk";
-export { extractDocument, extractPage, fromPdfJsItems } from "./extract";
-export { groupIntoLines, itemFontSize, itemX, itemY } from "./lines";
-export { extractFromPdf, pageTextItems } from "./load";
-export type { Chunk, ChunkOptions } from "./chunk";
-export type { LoadOptions, TextContentSource } from "./load";
-export type {
-  Block,
-  Cell,
-  ExtractedDocument,
-  ExtractedPage,
-  HeadingBlock,
-  Line,
-  ParagraphBlock,
-  TableBlock,
-  TextItem,
-} from "./types";
+export { extractDocument, readPageItems } from "./extract";
+export { recognisePages, scannedPages } from "./ocr";
+export type { Chunk } from "./chunk";
+export type { TextContentSource } from "./extract";
+export type { OcrProgress, RenderableDocument } from "./ocr";
+export type { Block, ExtractedDocument, TextItem } from "./types";

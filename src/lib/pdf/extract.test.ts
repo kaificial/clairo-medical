@@ -2,31 +2,37 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { extractDocument, extractPage, fromPdfJsItems } from "./extract";
+import { toBlocks } from "./blocks";
+import {
+  extractDocument,
+  readPageItems,
+  type TextContentSource,
+} from "./extract";
+import { groupIntoLines } from "./lines";
 import type { ExtractedPage, TableBlock, TextItem } from "./types";
 
 const samplePath = fileURLToPath(
   new URL("../../../public/example-medical.pdf", import.meta.url),
 );
 
+/**
+ * Each page laid out on its own before running so these
+ * tests see the raw layout.
+ */
 let pages: ExtractedPage[] = [];
 let items: TextItem[][] = [];
 
 beforeAll(async () => {
   const data = new Uint8Array(readFileSync(samplePath));
-  const doc = await getDocument({ data, isEvalSupported: false }).promise;
+  const pdf = await getDocument({ data, isEvalSupported: false }).promise;
 
-  pages = [];
-  items = [];
-  for (let n = 1; n <= doc.numPages; n += 1) {
-    const page = await doc.getPage(n);
-    const content = await page.getTextContent();
-    const pageItems = fromPdfJsItems(content.items);
-    items.push(pageItems);
-    pages.push(extractPage(pageItems, n));
-  }
+  items = await readPageItems(pdf);
+  pages = items.map((pageItems, index) => ({
+    page: index + 1,
+    blocks: toBlocks(groupIntoLines(pageItems, index + 1), index + 1),
+  }));
 });
 
 function rowsOf(page: ExtractedPage): string[][] {
@@ -37,6 +43,12 @@ function rowsOf(page: ExtractedPage): string[][] {
 
 function headingsOf(page: ExtractedPage): string[] {
   return page.blocks.filter((b) => b.kind === "heading").map((b) => b.text);
+}
+
+function textOf(document: { pages: ExtractedPage[] }): string {
+  return document.pages
+    .flatMap((page) => page.blocks.map((block) => block.text))
+    .join("\n");
 }
 
 describe("extracting a real discharge summary", () => {
@@ -76,36 +88,95 @@ describe("extracting a real discharge summary", () => {
   });
 
   it("keeps a label and its value together in one cell", () => {
-    const cells = rowsOf(pages[0]!).flat();
-
-    expect(cells).toContain("Patient Name: Smith, John");
+    expect(rowsOf(pages[0]!).flat()).toContain("Patient Name: Smith, John");
   });
 });
 
 describe("extracting the same report as one document", () => {
   it("drops the running page header", () => {
-    const text = extractDocument(items)
-      .pages.flatMap((page) => page.blocks.map((block) => block.text))
-      .join("\n");
-
-    expect(text).not.toMatch(/Page \d of 3/);
+    expect(textOf(extractDocument(items))).not.toMatch(/Page \d of 3/);
   });
 
   it("keeps the clinical content", () => {
-    const text = extractDocument(items)
-      .pages.flatMap((page) => page.blocks.map((block) => block.text))
-      .join("\n");
+    const text = textOf(extractDocument(items));
 
     expect(text).toContain("Pyelonephritis");
     expect(text).toContain("Creatinine");
   });
 
   it("reads a section title that carries a parenthetical", () => {
-    const headings = extractDocument(items)
-      .pages.flatMap((page) => page.blocks)
-      .filter((block) => block.kind === "heading")
-      .map((block) => block.text);
+    const headings = extractDocument(items).pages.flatMap(headingsOf);
 
     expect(headings).toContain("DIAGNOSIS (Co-Morbidities and Risks)");
+  });
+});
+
+function item(str: string, x: number, y: number, size = 10) {
+  return {
+    str,
+    transform: [size, 0, 0, size, x, y],
+    width: str.length * size * 0.5,
+    height: size,
+  };
+}
+
+function fakePdf(pageItems: unknown[][]): TextContentSource {
+  return {
+    numPages: pageItems.length,
+    getPage: (pageNumber: number) =>
+      Promise.resolve({
+        getTextContent: () =>
+          Promise.resolve({ items: pageItems[pageNumber - 1] ?? [] }),
+      }),
+  };
+}
+
+describe("readPageItems", () => {
+  it("reads every page in order", async () => {
+    const document = extractDocument(
+      await readPageItems(
+        fakePdf([[item("PAGE ONE", 72, 700)], [item("PAGE TWO", 72, 700)]]),
+      ),
+    );
+
+    expect(document.pages.map((p) => p.page)).toEqual([1, 2]);
+    expect(document.pages[0]?.blocks[0]?.text).toBe("PAGE ONE");
+    expect(document.pages[1]?.blocks[0]?.text).toBe("PAGE TWO");
+  });
+
+  it("handles a document with no pages", async () => {
+    expect(await readPageItems(fakePdf([]))).toEqual([]);
+  });
+
+  it("drops entries that are not positioned text runs", async () => {
+    const [page] = await readPageItems(
+      fakePdf([[{ type: "beginMarkedContent" }, item("Sodium", 72, 700)]]),
+    );
+
+    expect(page?.map((entry) => entry.str)).toEqual(["Sodium"]);
+  });
+
+  it("reports progress per page", async () => {
+    const onProgress = vi.fn();
+    await readPageItems(fakePdf([[item("a", 0, 0)], [item("b", 0, 0)]]), {
+      onProgress,
+    });
+
+    expect(onProgress.mock.calls).toEqual([
+      [1, 2],
+      [2, 2],
+    ]);
+  });
+
+  it("stops when the signal is aborted", async () => {
+    const controller = new AbortController();
+    const pdf = fakePdf([[item("a", 0, 0)], [item("b", 0, 0)]]);
+
+    await expect(
+      readPageItems(pdf, {
+        signal: controller.signal,
+        onProgress: () => controller.abort(),
+      }),
+    ).rejects.toThrow();
   });
 });
