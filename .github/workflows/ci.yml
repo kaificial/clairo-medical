@@ -43,3 +43,77 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  eval:
+    name: retrieval and lab parsing eval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The local embedding models are downloaded once from Hugging Face.
+      - name: Cache models and vectors
+        uses: actions/cache@v4
+        with:
+          path: evals/.cache
+          key: eval-${{ hashFiles('src/lib/embeddings/models.ts', 'evals/corpus/**') }}
+          restore-keys: eval-
+
+      - name: Run the eval
+        run: pnpm eval
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: evals/results.md
+
+  e2e:
+    name: end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build
+        run: pnpm build
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: e2e-placeholder-key
+
+      - name: Playwright
+        run: pnpm test:e2e
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
