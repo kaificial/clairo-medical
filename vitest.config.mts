@@ -9,7 +9,26 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     clearMocks: true,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.{ts,tsx}", "evals/**/*.test.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "eval",
+          include: ["evals/**/*.eval.ts"],
+          // Model downloads on a cold cache take a while; the suites run in order.
+          testTimeout: 15 * 60 * 1000,
+          hookTimeout: 60 * 1000,
+          fileParallelism: false,
+        },
+      },
+    ],
   },
 });
