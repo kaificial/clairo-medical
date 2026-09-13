@@ -2,9 +2,6 @@ import type { SVGProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Hero background design
- */
 export function Logo({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg
