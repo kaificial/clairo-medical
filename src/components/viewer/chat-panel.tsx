@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import {
   AiUnavailableError,
   askQuestion,
-  parseCitations,
-  type ChatMessage,
-} from "@/lib/ai";
-import type { Chunk } from "@/lib/pdf";
-import type { RetrievalService } from "@/lib/retrieval";
-import { cn } from "@/lib/utils";
+  failureMessage,
+} from "@/lib/ai/client";
+import type { ChatMessage } from "@/lib/ai/prompt";
+import type { Search } from "@/lib/retrieval";
+
+import { AnswerText } from "./answer-text";
 
 const PASSAGE_COUNT = 6;
 
@@ -40,12 +40,10 @@ function toHistory(turns: readonly Turn[]): ChatMessage[] {
 }
 
 export function ChatPanel({
-  service,
-  className,
+  search,
   onJump,
 }: {
-  service: RetrievalService | null;
-  className?: string;
+  search: Search | null;
   onJump: (page: number) => void;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -55,6 +53,7 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const turnCounter = useRef(0);
   const busy = turns.some((turn) => turn.status === "streaming");
+  const ready = search !== null && !busy;
 
   useEffect(() => {
     const node = scrollRef.current;
@@ -68,7 +67,7 @@ export function ChatPanel({
   }
 
   async function ask(question: string) {
-    if (!service || busy) return;
+    if (!ready) return;
 
     turnCounter.current += 1;
     const id = `turn-${turnCounter.current}`;
@@ -81,9 +80,9 @@ export function ChatPanel({
     ]);
 
     try {
-      const passages: Chunk[] = (
-        await service.search(question, PASSAGE_COUNT)
-      ).map((hit) => hit.chunk);
+      const passages = (await search(question, PASSAGE_COUNT)).map(
+        (hit) => hit.chunk,
+      );
 
       await askQuestion({
         question,
@@ -104,7 +103,10 @@ export function ChatPanel({
       update(id, (turn) => ({
         ...turn,
         status: "error",
-        error: "That answer did not come through. Try asking again.",
+        error: failureMessage(
+          cause,
+          "That answer did not come through. Try asking again.",
+        ),
       }));
     }
   }
@@ -112,10 +114,7 @@ export function ChatPanel({
   if (unavailable) return null;
 
   return (
-    <section
-      className={cn("bg-card flex flex-col rounded-xl border", className)}
-      aria-label="Ask about this report"
-    >
+    <section className="flex flex-col" aria-label="Ask about this report">
       <header className="flex items-center gap-2 border-b px-4 py-3">
         <MessageCircle className="text-muted-foreground size-4" />
         <h2 className="text-sm font-medium">Ask about this report</h2>
@@ -135,7 +134,7 @@ export function ChatPanel({
               <button
                 key={suggestion}
                 type="button"
-                disabled={!service}
+                disabled={!search}
                 onClick={() => void ask(suggestion)}
                 className="hover:bg-accent focus-visible:ring-ring/50 rounded-lg border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 disabled:opacity-50"
               >
@@ -147,18 +146,21 @@ export function ChatPanel({
           turns.map((turn) => (
             <article key={turn.id} className="flex flex-col gap-2">
               <p className="text-sm font-medium">{turn.question}</p>
+              {turn.answer.length > 0 ? (
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  <AnswerText text={turn.answer} onJump={onJump} />
+                </p>
+              ) : null}
+
+              {turn.status === "streaming" && turn.answer.length === 0 ? (
+                <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
+              ) : null}
+
               {turn.status === "error" ? (
                 <p className="text-destructive text-sm" role="alert">
                   {turn.error}
                 </p>
-              ) : (
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  <Answer text={turn.answer} onJump={onJump} />
-                  {turn.status === "streaming" && turn.answer.length === 0 ? (
-                    <Loader2 className="inline size-3.5 animate-spin" />
-                  ) : null}
-                </p>
-              )}
+              ) : null}
             </article>
           ))
         )}
@@ -174,9 +176,9 @@ export function ChatPanel({
       >
         <input
           value={draft}
-          disabled={!service || busy}
+          disabled={!ready}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={service ? "Ask a question" : "Open a report first"}
+          placeholder={search ? "Ask a question" : "Open a report first"}
           aria-label="Ask a question about this report"
           className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-sm outline-none disabled:cursor-not-allowed"
         />
@@ -184,44 +186,12 @@ export function ChatPanel({
           type="submit"
           size="icon-sm"
           className="rounded-pill"
-          disabled={!service || busy || draft.trim().length === 0}
+          disabled={!ready || draft.trim().length === 0}
           aria-label="Send question"
         >
-          {busy ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <CornerDownLeft className="size-4" />
-          )}
+          {busy ? <Loader2 className="animate-spin" /> : <CornerDownLeft />}
         </Button>
       </form>
     </section>
-  );
-}
-
-/** Renders an answer, turning each [p.N] citation into a jump to that page. */
-function Answer({
-  text,
-  onJump,
-}: {
-  text: string;
-  onJump: (page: number) => void;
-}) {
-  return (
-    <>
-      {parseCitations(text).map((part, index) =>
-        part.kind === "citation" ? (
-          <button
-            key={`${part.page}-${index}`}
-            type="button"
-            onClick={() => onJump(part.page)}
-            className="text-foreground hover:bg-accent mx-0.5 rounded border px-1 align-baseline font-mono text-[0.7rem]"
-          >
-            p.{part.page}
-          </button>
-        ) : (
-          <span key={index}>{part.text}</span>
-        ),
-      )}
-    </>
   );
 }

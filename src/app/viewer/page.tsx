@@ -1,5 +1,5 @@
-import { DocumentWorkspace } from "@/components/viewer";
-import { chatEnabled, embeddingsEnabled } from "@/lib/ai/model";
+import { DocumentWorkspace } from "@/components/viewer/document-workspace";
+import { chatEnabled, embeddingsEnabled } from "@/lib/ai/server";
 
 export default async function ViewerPage({
   searchParams,
@@ -12,8 +12,7 @@ export default async function ViewerPage({
         <h1 className="font-serif text-2xl tracking-tight">Your report</h1>
         <p className="text-muted-foreground text-sm">
           Open a lab, imaging, or discharge PDF. See which results are out of
-          range, highlight a term to define it, and ask questions for more
-          clairification, etc.
+          range, highlight a term to define it, and ask questions about it.
         </p>
       </div>
       <DocumentWorkspace
