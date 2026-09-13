@@ -3,26 +3,35 @@ import Link from "next/link";
 
 import { DemoVideo } from "@/components/demo-video";
 import { HeroMotif } from "@/components/hero-motif";
-import { Reveal } from "@/components/motion-primitives";
+import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   {
-    n: "01",
-    title: "Upload your PDF",
-    body: "A lab panel, an imaging report, a discharge summary. It stays on your device until you choose otherwise.",
+    title: "Open your PDF",
+    body: "A lab panel, an imaging report, a discharge summary. It is opened and read in your browser, never uploaded.",
   },
   {
-    n: "02",
-    title: "Read it in plain language",
-    body: "Highlight any term for an instant, sourced definition. Out-of-range values are called out, not buried.",
+    title: "See what's out of range",
+    body: "Lab results are pulled from the report's tables and set against a range, with repeat tests shown as a trend.",
   },
   {
-    n: "03",
     title: "Ask about your results",
-    body: "What's abnormal here? What should I ask my doctor? Answers cite the exact page and section.",
+    body: "Highlight any term for a plain definition, or ask a question. Answers cite the page they came from.",
   },
 ] as const;
+
+function StartButton({ className }: { className?: string }) {
+  return (
+    <Button asChild size="lg" className={cn("rounded-pill", className)}>
+      <Link href="/viewer">
+        Start analysis
+        <ArrowRight />
+      </Link>
+    </Button>
+  );
+}
 
 export default function Home() {
   return (
@@ -41,24 +50,19 @@ export default function Home() {
             </div>
 
             <p className="text-muted-foreground mt-6 max-w-md text-lg text-pretty">
-              Highlight a term for a definition. Ask questions. Get answers with
-              citations.
+              See which results are out of range. Highlight a term for a
+              definition. Ask questions and get answers with citations.
             </p>
 
             <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <Button asChild size="lg" className="rounded-pill">
-                <Link href="/viewer">
-                  Start analysis
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
+              <StartButton />
               <Button
                 asChild
                 size="lg"
                 variant="secondary"
                 className="rounded-pill"
               >
-                <Link href="/sign-in">Sign in</Link>
+                <Link href="/viewer?example=1">Try the example</Link>
               </Button>
             </div>
           </div>
@@ -74,10 +78,10 @@ export default function Home() {
         <Reveal>
           <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
           <ol className="border-border bg-border mt-8 grid gap-px overflow-hidden rounded-xl border sm:grid-cols-3">
-            {STEPS.map((step) => (
-              <li key={step.n} className="bg-card flex flex-col gap-3 p-6">
+            {STEPS.map((step, index) => (
+              <li key={step.title} className="bg-card flex flex-col gap-3 p-6">
                 <span className="text-muted-foreground font-mono text-xs">
-                  {step.n}
+                  {String(index + 1).padStart(2, "0")}
                 </span>
                 <h3 className="text-base font-medium">{step.title}</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
@@ -98,10 +102,12 @@ export default function Home() {
             You decide what leaves your machine
           </h2>
           <p className="text-muted-foreground max-w-2xl leading-relaxed">
-            Cloud AI is the default for the best answers. Prefer full privacy?
-            Switch on the in-browser model and your report is never uploaded —
-            everything runs locally. Account sync is opt-in, one document at a
-            time.
+            Your PDF is opened, read, searched, and checked for out-of-range
+            results inside your browser. Scanned pages are read with on-device
+            text recognition, and semantic search runs on your device too. Text
+            leaves your device only when you ask the AI provider for something:
+            a question, a definition, or a read of results written in sentences.
+            Even then, only the passages that matter are sent.
           </p>
         </Reveal>
       </section>
@@ -111,12 +117,7 @@ export default function Home() {
           <p className="font-serif text-3xl tracking-tight text-balance">
             Bring the report you don't understand yet.
           </p>
-          <Button asChild size="lg" className="rounded-pill mt-7">
-            <Link href="/viewer">
-              Start analysis
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          <StartButton className="mt-7" />
         </Reveal>
       </section>
     </main>

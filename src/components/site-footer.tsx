@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/brand/logo";
+import { Logo } from "@/components/logo";
+import { NAV_LINKS } from "@/components/site-header";
 
 export function SiteFooter() {
   return (
@@ -14,17 +15,20 @@ export function SiteFooter() {
         </div>
 
         <p className="text-muted-foreground max-w-sm text-sm">
-          Disclaimer! Clairo helps you understand your document. It's not a
-          medical device and doesn't replace your doctor :D
+          Clairo helps you understand your document. It is not a medical device,
+          does not give a diagnosis, and does not replace your doctor.
         </p>
 
         <nav className="text-muted-foreground flex gap-6 text-sm">
-          <Link href="/#how" className="hover:text-foreground">
-            How it works
-          </Link>
-          <Link href="/#privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
+          {NAV_LINKS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
       </div>
       <div className="text-muted-foreground mx-auto max-w-5xl px-6 pb-8 text-xs">

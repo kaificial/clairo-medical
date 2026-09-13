@@ -1,8 +1,77 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "../styles/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(0.962 0.024 92);
+  --foreground: oklch(0.33 0.016 90);
+  --card: oklch(0.98 0.018 92);
+  --card-foreground: oklch(0.33 0.016 90);
+  --popover: oklch(0.985 0.014 92);
+  --popover-foreground: oklch(0.33 0.016 90);
+
+  --primary: oklch(0.915 0.17 110);
+  --primary-foreground: oklch(0.33 0.016 90);
+
+  --highlight: oklch(0.945 0.11 104);
+  --highlight-foreground: oklch(0.3 0.018 90);
+
+  --secondary: oklch(0.91 0.028 92);
+  --secondary-foreground: oklch(0.36 0.016 90);
+  --muted: oklch(0.935 0.026 92);
+  --muted-foreground: oklch(0.52 0.026 90);
+  --accent: oklch(0.935 0.026 92);
+  --accent-foreground: oklch(0.33 0.016 90);
+
+  --success: oklch(0.585 0.115 128);
+  --success-foreground: oklch(0.98 0.01 95);
+  --destructive: oklch(0.53 0.16 34);
+  /* Out of range results use amber rather than red. Most flags on a report
+     are mild, and red reads like an emergency. */
+  --caution: oklch(0.56 0.13 62);
+
+  --border: oklch(0.892 0.028 92);
+  --input: oklch(0.892 0.028 92);
+  --ring: oklch(0.55 0.03 92);
+
+  --hero-lines: oklch(0.67 0.05 95);
+
+  --radius: 1rem;
+}
+
+.dark {
+  --background: oklch(0.17 0.01 85);
+  --foreground: oklch(0.925 0.012 92);
+  --card: oklch(0.215 0.012 85);
+  --card-foreground: oklch(0.925 0.012 92);
+  --popover: oklch(0.215 0.012 85);
+  --popover-foreground: oklch(0.925 0.012 92);
+
+  --primary: oklch(0.9 0.16 110);
+  --primary-foreground: oklch(0.2 0.015 90);
+
+  --highlight: oklch(0.9 0.13 104);
+  --highlight-foreground: oklch(0.24 0.02 90);
+
+  --secondary: oklch(0.28 0.014 85);
+  --secondary-foreground: oklch(0.925 0.012 92);
+  --muted: oklch(0.25 0.012 85);
+  --muted-foreground: oklch(0.7 0.022 90);
+  --accent: oklch(0.28 0.014 85);
+  --accent-foreground: oklch(0.925 0.012 92);
+
+  --success: oklch(0.72 0.12 128);
+  --success-foreground: oklch(0.18 0.01 85);
+  --destructive: oklch(0.62 0.17 34);
+  --caution: oklch(0.78 0.13 72);
+
+  --border: oklch(0.3 0.014 85);
+  --input: oklch(0.32 0.014 85);
+  --ring: oklch(0.62 0.02 90);
+
+  --hero-lines: oklch(0.53 0.026 88);
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -24,15 +93,11 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-destructive: var(--destructive);
+  --color-caution: var(--caution);
   --color-border: var(--border);
-  --color-hero-lines: var(--hero-lines);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
+  --color-hero-lines: var(--hero-lines);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
@@ -58,7 +123,8 @@
     @apply bg-background text-foreground;
   }
 
-  /* One marker yellow for every selection / highlight in the product. */
+  /* Selecting text uses the same marker yellow as the highlight in the hero,
+     so picking out a term in a report feels like the same gesture. */
   ::selection {
     background-color: var(--highlight);
     color: var(--highlight-foreground);
