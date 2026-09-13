@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { createGuard, DAILY_LIMIT, readJson, ROUTE_LIMITS } from "./guard";
-import { clientAddress, createRateLimiter } from "./rate-limit";
+import {
+  clientAddress,
+  createGuard,
+  createRateLimiter,
+  DAILY_LIMIT,
+  readJson,
+  ROUTE_LIMITS,
+} from "./guard";
 
 function request(ip: string, body?: string, headers: HeadersInit = {}) {
   return new Request("http://localhost/api/chat", {
@@ -18,25 +24,25 @@ describe("createRateLimiter", () => {
     const limiter = createRateLimiter({ now: () => time });
     const rule = { limit: 2, windowMs: 1000 };
 
-    expect(limiter.check("a", rule).allowed).toBe(true);
-    expect(limiter.check("a", rule)).toMatchObject({
+    expect(limiter("a", rule).allowed).toBe(true);
+    expect(limiter("a", rule)).toMatchObject({
       allowed: true,
       remaining: 0,
     });
-    expect(limiter.check("a", rule).allowed).toBe(false);
-    expect(limiter.check("b", rule).allowed).toBe(true);
+    expect(limiter("a", rule).allowed).toBe(false);
+    expect(limiter("b", rule).allowed).toBe(true);
 
     time = 1000;
-    expect(limiter.check("a", rule).allowed).toBe(true);
+    expect(limiter("a", rule).allowed).toBe(true);
   });
 
   it("stays within its key budget", () => {
     const limiter = createRateLimiter({ now: () => 0, maxKeys: 2 });
     const rule = { limit: 1, windowMs: 1000 };
-    limiter.check("a", rule);
-    limiter.check("b", rule);
-    limiter.check("c", rule);
-    expect(limiter.check("a", rule).allowed).toBe(true);
+    limiter("a", rule);
+    limiter("b", rule);
+    limiter("c", rule);
+    expect(limiter("a", rule).allowed).toBe(true);
   });
 });
 

@@ -1,6 +1,9 @@
-import { AiRequestFailedError, AiUnavailableError } from "./errors";
-
-export type AnswerEvent =
+/**
+ * Answers stream as newline delimited JSON rather than plain text. With plain
+ * text, a provider failing halfway looks exactly like an answer that just
+ * stopped; an error event lets the reader see what went wrong.
+ */
+type AnswerEvent =
   { type: "delta"; text: string } | { type: "error"; message: string };
 
 export const ANSWER_CONTENT_TYPE = "application/x-ndjson";
@@ -9,7 +12,10 @@ export function encodeEvent(event: AnswerEvent): string {
   return `${JSON.stringify(event)}\n`;
 }
 
-/** Parse one line anything thats unrecognisable */
+/**
+ * Reads one line of the stream. Anything we don't recognise is skipped rather
+ * than shown.
+ */
 export function parseEvent(line: string): AnswerEvent | null {
   const trimmed = line.trim();
   if (trimmed.length === 0) return null;
@@ -30,35 +36,34 @@ export function parseEvent(line: string): AnswerEvent | null {
   if (event.type === "error" && typeof event.message === "string") {
     return { type: "error", message: event.message };
   }
-
   return null;
 }
 
-export interface EventStreamOptions {
-  deltas: AsyncIterable<string>;
-  describe: (cause: unknown) => string;
-  pending?: () => unknown;
-}
-
-/** Encode model output as answer events end with an error event if an error happens */
+/**
+ * Turns model output into events. If the stream throws, or `failure` reports an
+ * error the provider raised on the side, the last event says what happened.
+ */
 export function toEventStream({
   deltas,
   describe,
-  pending,
-}: EventStreamOptions): ReadableStream<Uint8Array> {
+  failure,
+}: {
+  deltas: AsyncIterable<string>;
+  describe: (cause: unknown) => string;
+  failure?: () => unknown;
+}): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
-      function send(event: AnswerEvent) {
+      const send = (event: AnswerEvent) =>
         controller.enqueue(encoder.encode(encodeEvent(event)));
-      }
 
       try {
         for await (const text of deltas) {
           if (text.length > 0) send({ type: "delta", text });
         }
-        const late = pending?.();
+        const late = failure?.();
         if (late != null) send({ type: "error", message: describe(late) });
       } catch (cause) {
         send({ type: "error", message: describe(cause) });
@@ -69,27 +74,30 @@ export function toEventStream({
   });
 }
 
-export async function readAnswerStream(
+/**
+ * Puts an answer back together from its events. `failure` is the message from
+ * an error event, and `text` is whatever arrived before it, kept so a half
+ * written answer isn't lost.
+ */
+export async function readEventStream(
   body: ReadableStream<Uint8Array>,
   onDelta?: (delta: string) => void,
-): Promise<string> {
+): Promise<{ text: string; failure: string | null }> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
 
-  let answer = "";
+  let text = "";
   let buffer = "";
   let failure: string | null = null;
 
   function handle(line: string) {
     const event = parseEvent(line);
-    if (event === null) return;
-
-    if (event.type === "delta") {
-      answer += event.text;
+    if (event?.type === "delta") {
+      text += event.text;
       onDelta?.(event.text);
-      return;
+    } else if (event?.type === "error") {
+      failure = event.message;
     }
-    failure = event.message;
   }
 
   try {
@@ -107,59 +115,5 @@ export async function readAnswerStream(
     reader.releaseLock();
   }
 
-  if (failure !== null) throw new AiRequestFailedError(failure, answer);
-  return answer;
-}
-
-/** The message the server sent with a failed response, if it sent any */
-async function failureMessage(response: Response): Promise<string> {
-  try {
-    const body: unknown = await response.json();
-    const message = (body as { error?: unknown }).error;
-    if (typeof message === "string" && message.length > 0) return message;
-  } catch {
-    // A response without a JSON body still has its status to report.
-  }
-
-  return `The request failed (${response.status}).`;
-}
-
-export interface AnswerRequestOptions {
-  signal?: AbortSignal;
-  onDelta?: (delta: string) => void;
-}
-
-/** POST a request and stream the answer back. Resolves with the whole answer. */
-export async function requestAnswer(
-  endpoint: string,
-  payload: unknown,
-  { signal, onDelta }: AnswerRequestOptions = {},
-): Promise<string> {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-    signal,
-  });
-
-  if (response.status === 503) {
-    throw new AiUnavailableError("Cloud AI is not configured.");
-  }
-  if (!response.ok || !response.body) {
-    throw new AiRequestFailedError(await failureMessage(response));
-  }
-
-  return readAnswerStream(response.body, onDelta);
-}
-
-/** Read a JSON response, turning a fail into an error messafe */
-export async function readJsonResponse<T>(response: Response): Promise<T> {
-  if (response.status === 503) {
-    throw new AiUnavailableError("Cloud AI is not configured.");
-  }
-  if (!response.ok) {
-    throw new AiRequestFailedError(await failureMessage(response));
-  }
-
-  return (await response.json()) as T;
+  return { text, failure };
 }

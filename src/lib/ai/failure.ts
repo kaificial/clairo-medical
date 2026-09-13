@@ -1,4 +1,7 @@
-/** What a route returns, and the reader is shown, when a provider call fails. */
+/**
+ * The status our route returns and the message the reader sees when a provider
+ * call fails.
+ */
 interface AiFailure {
   status: number;
   message: string;
@@ -7,7 +10,9 @@ interface AiFailure {
 const MAX_DEPTH = 5;
 
 /**
- * Collect messages and status codes from an error and the errors behind it.
+ * The AI SDK wraps provider errors, sometimes a few layers deep, and a retry
+ * error keeps the real failure in lastError rather than cause. Walk all of it
+ * and collect every message and status code along the way.
  */
 function collect(
   value: unknown,
@@ -39,7 +44,10 @@ function collect(
 }
 
 /**
- * Turn a thrown provider error into something worth showing the user
+ * Turns whatever the provider threw into a message the reader can act on: wait
+ * and try again, or ask whoever runs the app to fix the key or the model.
+ * Anything we don't recognise gets a vague message rather than leaking
+ * internals.
  */
 export function describeAiFailure(cause: unknown): AiFailure {
   const found = { text: [] as string[], statuses: [] as number[] };

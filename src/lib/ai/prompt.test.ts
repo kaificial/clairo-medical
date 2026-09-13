@@ -4,7 +4,9 @@ import type { Chunk } from "@/lib/pdf";
 
 import {
   buildChatPrompt,
+  buildDefinitionPrompt,
   CHAT_INSTRUCTIONS,
+  DEFINITION_INSTRUCTIONS,
   formatPassage,
   formatPassages,
 } from "./prompt";
@@ -118,5 +120,45 @@ describe("buildChatPrompt", () => {
   it("tells the model how to handle a prognosis question", () => {
     expect(CHAT_INSTRUCTIONS).toMatch(/prognosis|survival/i);
     expect(CHAT_INSTRUCTIONS).toContain("not a doctor");
+  });
+});
+
+describe("buildDefinitionPrompt", () => {
+  it("puts the highlighted text last, after the passages", () => {
+    const { messages } = buildDefinitionPrompt({
+      term: "Creatinine",
+      passages: [chunk("p2#1", "Creatinine 1.8 mg/dL (H).", 2)],
+    });
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]?.content).toContain("Creatinine 1.8 mg/dL (H).");
+    expect(messages[0]?.content.trimEnd()).toMatch(
+      /Highlighted text: Creatinine$/,
+    );
+  });
+
+  it("says outright when the report does not contain the term", () => {
+    const { messages } = buildDefinitionPrompt({
+      term: "Creatinine",
+      passages: [],
+    });
+
+    expect(messages[0]?.content).toContain("no passage containing");
+  });
+
+  it("allows general vocabulary, unlike an answer about the report", () => {
+    expect(DEFINITION_INSTRUCTIONS).toContain("dictionary entry");
+    expect(DEFINITION_INSTRUCTIONS).toContain("diagnosis");
+    expect(DEFINITION_INSTRUCTIONS).not.toBe(CHAT_INSTRUCTIONS);
+  });
+
+  it("keeps the context budget below the one a question gets", () => {
+    const long = chunk("p1#1", "x".repeat(6_000));
+    const { messages } = buildDefinitionPrompt({
+      term: "x",
+      passages: [long, chunk("p2#1", "second", 2)],
+    });
+
+    expect(messages[0]?.content).not.toContain("second");
   });
 });

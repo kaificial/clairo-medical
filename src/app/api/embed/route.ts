@@ -1,47 +1,28 @@
 import { z } from "zod";
 
-import {
-  EmbeddingRequestTooLargeError,
-  embedValues,
-  MAX_CHARS,
-  MAX_VALUES,
-} from "@/lib/ai/embeddings";
-import { AiNotConfiguredError } from "@/lib/ai/errors";
-import { describeAiFailure } from "@/lib/ai/failure";
-import { jsonError, limitRequest, readJson } from "@/lib/server/guard";
+import { aiRoute, embedValues } from "@/lib/ai/server";
 
-const MAX_VALUE = 8_000;
-const MAX_BYTES = MAX_CHARS * 3;
-
-const requestSchema = z.object({
-  values: z.array(z.string().max(MAX_VALUE)).min(1).max(MAX_VALUES),
-});
+const MAX_CHARS = 400_000;
 
 /**
- * Embeds report passages, where text from the document leaves the
- * device behind an explicit call rather than running as a side
- * effect of opening a file.
+ * Only used when a reader picks cloud semantic search over the on-device model.
+ * This is the one place report text is sent in bulk, so it runs because someone
+ * clicked for it, never just because a file was opened.
  */
-export async function POST(request: Request): Promise<Response> {
-  const limited = limitRequest(request, "embed");
-  if (limited) return limited;
-
-  const body = await readJson(request, requestSchema, {
-    maxBytes: MAX_BYTES,
-    shape: "{ values: string[] }",
-  });
-  if (!body.ok) return body.response;
-
-  try {
-    return Response.json(await embedValues(body.data.values));
-  } catch (cause) {
-    if (cause instanceof AiNotConfiguredError)
-      return jsonError(cause.message, 503);
-    if (cause instanceof EmbeddingRequestTooLargeError)
-      return jsonError(cause.message, 413);
-
-    console.error("[embed] request failed", cause);
-    const failure = describeAiFailure(cause);
-    return jsonError(failure.message, failure.status);
-  }
-}
+export const POST = aiRoute({
+  route: "embed",
+  maxBytes: MAX_CHARS * 3,
+  shape: `{ values: string[] } with at most ${MAX_CHARS} characters in total`,
+  schema: z.object({
+    values: z
+      .array(z.string().max(8_000))
+      .min(1)
+      .max(400)
+      .refine(
+        (values) =>
+          values.reduce((total, value) => total + value.length, 0) <= MAX_CHARS,
+      ),
+  }),
+  handle: async ({ values }) =>
+    Response.json({ embeddings: await embedValues(values) }),
+});

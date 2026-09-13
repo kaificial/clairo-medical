@@ -1,11 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { AiRequestFailedError, AiUnavailableError } from "./errors";
 import {
   encodeEvent,
   parseEvent,
-  readAnswerStream,
-  requestAnswer,
+  readEventStream,
   toEventStream,
 } from "./transport";
 
@@ -24,17 +22,7 @@ function bodyOf(...lines: string[]): ReadableStream<Uint8Array> {
 }
 
 async function collect(stream: ReadableStream<Uint8Array>): Promise<string> {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-
-  let text = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    text += decoder.decode(value, { stream: true });
-  }
-
-  return text + decoder.decode();
+  return new Response(stream).text();
 }
 
 describe("parseEvent", () => {
@@ -83,7 +71,7 @@ describe("toEventStream", () => {
       toEventStream({
         deltas: deltas(),
         describe: () => "provider refused",
-        pending: () => new Error("mid-stream"),
+        failure: () => new Error("mid-stream"),
       }),
     );
 
@@ -91,10 +79,10 @@ describe("toEventStream", () => {
   });
 });
 
-describe("readAnswerStream", () => {
+describe("readEventStream", () => {
   it("reassembles deltas split across chunks", async () => {
     const seen: string[] = [];
-    const answer = await readAnswerStream(
+    const { text } = await readEventStream(
       bodyOf(
         '{"type":"delta","text":"Cre"}\n{"type":"del',
         'ta","text":"a"}\n',
@@ -102,70 +90,24 @@ describe("readAnswerStream", () => {
       (delta) => seen.push(delta),
     );
 
-    expect(answer).toBe("Crea");
+    expect(text).toBe("Crea");
     expect(seen).toEqual(["Cre", "a"]);
   });
 
   it("reads a final line that arrives without its newline", async () => {
-    const answer = await readAnswerStream(
+    const { text } = await readEventStream(
       bodyOf('{"type":"delta","text":"x"}'),
     );
-
-    expect(answer).toBe("x");
+    expect(text).toBe("x");
   });
 
-  it("throws on an error event, keeping what had already arrived", async () => {
-    const failing = readAnswerStream(
+  it("reports an error event alongside what had already arrived", async () => {
+    const result = await readEventStream(
       bodyOf(
-        '{"type":"delta","text":"half"}\n{"type":"error","message":"card needed"}\n',
+        '{"type":"delta","text":"half"}\n{"type":"error","message":"busy"}\n',
       ),
     );
 
-    await expect(failing).rejects.toThrow(AiRequestFailedError);
-    await failing.catch((cause: AiRequestFailedError) => {
-      expect(cause.message).toBe("card needed");
-      expect(cause.partial).toBe("half");
-    });
-  });
-});
-
-describe("requestAnswer", () => {
-  it("reports an unconfigured server distinctly, so callers can drop the feature", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 503, body: null }),
-    );
-
-    await expect(requestAnswer("/api/chat", {})).rejects.toThrow(
-      AiUnavailableError,
-    );
-  });
-
-  it("surfaces the message the server sent with a failure", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 402,
-        body: null,
-        json: () => Promise.resolve({ error: "Add a card." }),
-      }),
-    );
-
-    await expect(requestAnswer("/api/chat", {})).rejects.toThrow("Add a card.");
-  });
-
-  it("falls back to the status when the failure has no body", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-        body: null,
-        json: () => Promise.reject(new Error("no body")),
-      }),
-    );
-
-    await expect(requestAnswer("/api/chat", {})).rejects.toThrow("(500)");
+    expect(result).toEqual({ text: "half", failure: "busy" });
   });
 });

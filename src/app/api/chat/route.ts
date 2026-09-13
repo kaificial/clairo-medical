@@ -1,41 +1,26 @@
 import { z } from "zod";
 
-import { streamAnswer } from "@/lib/ai/chat";
-import { AiNotConfiguredError } from "@/lib/ai/errors";
-import { describeAiFailure } from "@/lib/ai/failure";
-import { chunkSchema, historySchema } from "@/lib/ai/schemas";
-import { jsonError, limitRequest, readJson } from "@/lib/server/guard";
+import { buildChatPrompt } from "@/lib/ai/prompt";
+import {
+  aiRoute,
+  chunkSchema,
+  historySchema,
+  streamPrompt,
+} from "@/lib/ai/server";
 
-const MAX_QUESTION = 2_000;
-const MAX_PASSAGES = 12;
-const MAX_HISTORY = 20;
-const MAX_BYTES = 512_000;
-
-const requestSchema = z.object({
-  question: z.string().trim().min(1).max(MAX_QUESTION),
-  passages: z.array(chunkSchema).max(MAX_PASSAGES),
-  history: historySchema.max(MAX_HISTORY).optional(),
+/**
+ * Answers a reader's question about their report. The browser has already
+ * searched the document and sends only the passages it found, so the file
+ * itself never reaches this server.
+ */
+export const POST = aiRoute({
+  route: "chat",
+  maxBytes: 512_000,
+  shape: "{ question, passages, history? }",
+  schema: z.object({
+    question: z.string().trim().min(1).max(2_000),
+    passages: z.array(chunkSchema).max(12),
+    history: historySchema.max(20).optional(),
+  }),
+  handle: (body) => streamPrompt(buildChatPrompt(body)),
 });
-
-/** Answers a question about the open report, grounded in passages the browser retrieved. */
-export async function POST(request: Request): Promise<Response> {
-  const limited = limitRequest(request, "chat");
-  if (limited) return limited;
-
-  const body = await readJson(request, requestSchema, {
-    maxBytes: MAX_BYTES,
-    shape: "{ question, passages, history? }",
-  });
-  if (!body.ok) return body.response;
-
-  try {
-    return streamAnswer(body.data);
-  } catch (cause) {
-    if (cause instanceof AiNotConfiguredError)
-      return jsonError(cause.message, 503);
-
-    console.error("[chat] request failed", cause);
-    const failure = describeAiFailure(cause);
-    return jsonError(failure.message, failure.status);
-  }
-}
