@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-label="Clairo: your medical report, in plain language">
+<style>
+  svg {
+    --bg: #f8f2e1; --card: #fdf8eb; --fg: #38352c; --muted: #6f6958; --border: #e2dbc7;
+    --secondary: #e8e1cd; --primary: #eaec53; --on-primary: #38352c; --highlight: #f9f198; --on-hl: #312e24;
+    --success: #688838; --caution: #a96000; --lines: #9f9572; --track: #f0e9d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    svg {
+      --bg: #110f0a; --card: #1c1913; --fg: #e9e6dd; --muted: #a49e8f; --border: #312d26;
+      --secondary: #2c2821; --primary: #e5e75b; --on-primary: #19160e; --highlight: #ece277; --on-hl: #231f14;
+      --success: #8fb35e; --caution: #eaa950; --lines: #726b5b; --track: #24211b;
+    }
+  }
+  .bg { fill: var(--bg); }
+  .card { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+  .soft { fill: var(--bg); stroke: var(--border); stroke-width: 1.5; }
+  .fg { fill: var(--fg); }
+  .muted { fill: var(--muted); }
+  .primary { fill: var(--primary); }
+  .on-primary { fill: var(--on-primary); }
+  .hl { fill: var(--highlight); }
+  .on-hl { fill: var(--on-hl); }
+  .serif { font-family: Newsreader, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; }
+  .sans { font-family: Geist, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+  .mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .lines { stroke: var(--lines); fill: none; }
+  .border { stroke: var(--border); }
+  .track { fill: var(--track); }
+  .success { fill: var(--success); }
+  .caution { fill: var(--caution); }
+  .arrow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
+  .dash { stroke: var(--lines); stroke-width: 1.5; stroke-dasharray: 6 6; fill: none; }
+</style>
+<defs>
+  <clipPath id="frame"><rect x="1" y="1" width="1278" height="438" rx="28"/></clipPath>
+  <radialGradient id="fade" cx="0.78" cy="0.5" r="0.62">
+    <stop offset="0" stop-color="white"/><stop offset="0.55" stop-color="white"/><stop offset="1" stop-color="black"/>
+  </radialGradient>
+  <mask id="fade-mask"><rect width="1280" height="440" fill="url(#fade)"/></mask>
+</defs>
+<rect x="1" y="1" width="1278" height="438" rx="28" class="bg" stroke="var(--border)" stroke-width="2"/>
+<g clip-path="url(#frame)">
+  <g class="lines" stroke-width="1.2" mask="url(#fade-mask)"><g transform="rotate(0 1010 220)" stroke-opacity="0.60">
+      <circle cx="1010" cy="185" r="35"/><circle cx="1045" cy="220" r="35"/>
+      <circle cx="1010" cy="255" r="35"/><circle cx="975" cy="220" r="35"/></g><g transform="rotate(17 1010 220)" stroke-opacity="0.56">
+      <circle cx="1010" cy="172.4" r="47.6"/><circle cx="1057.6" cy="220" r="47.6"/>
+      <circle cx="1010" cy="267.6" r="47.6"/><circle cx="962.4" cy="220" r="47.6"/></g><g transform="rotate(34 1010 220)" stroke-opacity="0.52">
+      <circle cx="1010" cy="155.26399999999998" r="64.73600000000002"/><circle cx="1074.736" cy="220" r="64.73600000000002"/>
+      <circle cx="1010" cy="284.736" r="64.73600000000002"/><circle cx="945.264" cy="220" r="64.73600000000002"/></g><g transform="rotate(51 1010 220)" stroke-opacity="0.48">
+      <circle cx="1010" cy="131.95904" r="88.04096000000001"/><circle cx="1098.04096" cy="220" r="88.04096000000001"/>
+      <circle cx="1010" cy="308.04096000000004" r="88.04096000000001"/><circle cx="921.95904" cy="220" r="88.04096000000001"/></g><g transform="rotate(68 1010 220)" stroke-opacity="0.44">
+      <circle cx="1010" cy="100.26429439999995" r="119.73570560000005"/><circle cx="1129.7357056" cy="220" r="119.73570560000005"/>
+      <circle cx="1010" cy="339.7357056000001" r="119.73570560000005"/><circle cx="890.2642943999999" cy="220" r="119.73570560000005"/></g><g transform="rotate(85 1010 220)" stroke-opacity="0.40">
+      <circle cx="1010" cy="57.159440383999964" r="162.84055961600004"/><circle cx="1172.840559616" cy="220" r="162.84055961600004"/>
+      <circle cx="1010" cy="382.84055961600006" r="162.84055961600004"/><circle cx="847.1594403839999" cy="220" r="162.84055961600004"/></g><g transform="rotate(102 1010 220)" stroke-opacity="0.36">
+      <circle cx="1010" cy="-1.463161077760077" r="221.46316107776008"/><circle cx="1231.46316107776" cy="220" r="221.46316107776008"/>
+      <circle cx="1010" cy="441.4631610777601" r="221.46316107776008"/><circle cx="788.5368389222399" cy="220" r="221.46316107776008"/></g><g transform="rotate(119 1010 220)" stroke-opacity="0.32">
+      <circle cx="1010" cy="-81.18989906575376" r="301.18989906575376"/><circle cx="1311.1898990657537" cy="220" r="301.18989906575376"/>
+      <circle cx="1010" cy="521.1898990657537" r="301.18989906575376"/><circle cx="708.8101009342463" cy="220" r="301.18989906575376"/></g></g>
+</g>
+
+
+  <mask id="mark-72-64"><rect x="72" y="64" width="40" height="40" fill="white"/>
+    <rect x="86" y="78" width="12" height="12" rx="4" fill="black"/></mask>
+  <g class="fg" mask="url(#mark-72-64)">
+    <circle cx="92" cy="76.16666666666667" r="9.000000000000002"/>
+    <circle cx="99.83333333333333" cy="84" r="9.000000000000002"/>
+    <circle cx="92" cy="91.83333333333333" r="9.000000000000002"/>
+    <circle cx="84.16666666666667" cy="84" r="9.000000000000002"/>
+  </g>
+<text x="124" y="95" class="sans fg" font-size="30" font-weight="600" letter-spacing="-0.5">clairo</text>
+
+<rect x="68" y="218" width="444" height="70" rx="10" class="hl"/>
+<text x="72" y="190" class="serif fg" font-size="66" letter-spacing="-1" textLength="600" lengthAdjust="spacingAndGlyphs">Your medical report,</text>
+<text x="80" y="272" class="serif on-hl" font-size="66" letter-spacing="-1" textLength="424" lengthAdjust="spacingAndGlyphs">in plain language</text>
+
+<text x="74" y="336" class="sans muted" font-size="20">Out of range results, plain definitions, and answers</text>
+<text x="74" y="364" class="sans muted" font-size="20">that cite the page, from your own PDF.</text>
+
+<rect x="800" y="58" width="420" height="324" rx="22" class="card"/>
+<rect x="814" y="72" width="128" height="32" rx="16" fill="var(--secondary)"/>
+<text x="878" y="93" text-anchor="middle" class="sans fg" font-size="14" font-weight="600">Lab results</text>
+<text x="968" y="93" class="sans muted" font-size="14">Ask</text>
+<line x1="800" x2="1220" y1="118" y2="118" class="border" stroke-width="1.5"/>
+<text x="826" y="152" class="serif fg" font-size="22">3 of 7 tests outside the range</text>
+
+  <text x="826" y="192" class="sans fg" font-size="17" font-weight="600">ALT</text>
+  <text x="826" y="212" class="sans muted" font-size="13">was 1001 IU/L on 8 Oct</text>
+  <rect x="1141.6" y="177" width="52.4" height="22" rx="11" class="caution" fill-opacity="0.16"/>
+  <text x="1167.8" y="192.5" text-anchor="middle" class="sans caution" font-size="12.5" font-weight="600">High</text>
+  <text x="1194" y="224" text-anchor="end" class="mono fg" font-size="15">90 IU/L</text>
+  <rect x="826" y="240" width="368" height="5" rx="2.5" class="track"/>
+  <rect x="936.4" y="240" width="147.2" height="5" rx="2.5" class="success" fill-opacity="0.38"/>
+  <circle cx="1175.6" cy="242.5" r="4.5" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5"/>
+  <circle cx="1136.96" cy="242.5" r="6.5" class="caution" stroke="var(--card)" stroke-width="2.5"/>
+<line x1="800" x2="1220" y1="260" y2="260" class="border" stroke-width="1.5"/>
+
+  <text x="826" y="296" class="sans fg" font-size="17" font-weight="600">Bilirubin</text>
+  <text x="826" y="316" class="sans muted" font-size="13">was 24 umol/L on 8 Oct</text>
+  <rect x="1111.2" y="281" width="82.8" height="22" rx="11" class="success" fill-opacity="0.16"/>
+  <text x="1152.6" y="296.5" text-anchor="middle" class="sans success" font-size="12.5" font-weight="600">In range</text>
+  <text x="1194" y="328" text-anchor="end" class="mono fg" font-size="15">17 umol/L</text>
+  <rect x="826" y="344" width="368" height="5" rx="2.5" class="track"/>
+  <rect x="936.4" y="344" width="147.2" height="5" rx="2.5" class="success" fill-opacity="0.38"/>
+  <circle cx="1109.3600000000001" cy="346.5" r="4.5" fill="var(--card)" stroke="var(--muted)" stroke-width="1.5"/>
+  <circle cx="1046.8" cy="346.5" r="6.5" class="success" stroke="var(--card)" stroke-width="2.5"/>
+</svg>

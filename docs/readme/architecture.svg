@@ -1,0 +1,193 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1510 900" width="1510" height="900" role="img" aria-label="Clairo architecture: the browser reads, indexes and checks the PDF; four guarded Next.js routes call Google Gemini only when the reader asks for something">
+<style>
+  svg {
+    --bg: #f8f2e1; --card: #fdf8eb; --fg: #38352c; --muted: #6f6958; --border: #e2dbc7;
+    --secondary: #e8e1cd; --primary: #eaec53; --on-primary: #38352c; --highlight: #f9f198; --on-hl: #312e24;
+    --success: #688838; --caution: #a96000; --lines: #9f9572; --track: #f0e9d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    svg {
+      --bg: #110f0a; --card: #1c1913; --fg: #e9e6dd; --muted: #a49e8f; --border: #312d26;
+      --secondary: #2c2821; --primary: #e5e75b; --on-primary: #19160e; --highlight: #ece277; --on-hl: #231f14;
+      --success: #8fb35e; --caution: #eaa950; --lines: #726b5b; --track: #24211b;
+    }
+  }
+  .bg { fill: var(--bg); }
+  .card { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+  .soft { fill: var(--bg); stroke: var(--border); stroke-width: 1.5; }
+  .fg { fill: var(--fg); }
+  .muted { fill: var(--muted); }
+  .primary { fill: var(--primary); }
+  .on-primary { fill: var(--on-primary); }
+  .hl { fill: var(--highlight); }
+  .on-hl { fill: var(--on-hl); }
+  .serif { font-family: Newsreader, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; }
+  .sans { font-family: Geist, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+  .mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .lines { stroke: var(--lines); fill: none; }
+  .border { stroke: var(--border); }
+  .track { fill: var(--track); }
+  .success { fill: var(--success); }
+  .caution { fill: var(--caution); }
+  .arrow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
+  .dash { stroke: var(--lines); stroke-width: 1.5; stroke-dasharray: 6 6; fill: none; }
+</style>
+<defs>
+  <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0 1 L9 5 L0 9 z" fill="var(--muted)"/>
+  </marker>
+</defs>
+<rect width="1510" height="900" rx="30" class="bg"/>
+
+
+  <rect x="24" y="24" width="800" height="852" rx="26" class="card"/>
+  <text x="52" y="66" class="mono muted" font-size="14" letter-spacing="2.2">YOUR BROWSER</text>
+<rect x="506" y="44" width="292" height="32" rx="16" class="primary"/>
+<text x="652" y="65" text-anchor="middle" class="sans on-primary" font-size="14" font-weight="600">The PDF is never uploaded</text>
+
+
+  <rect x="50" y="96" width="748" height="186" rx="18" fill="none" class="border" stroke-width="1.5"/>
+  <text x="72" y="134" class="serif fg" font-size="25">Read</text>
+  <text x="776" y="132" text-anchor="end" class="sans muted" font-size="14">on open, no network</text>
+
+  <rect x="72" y="166" width="210" height="90" rx="14" class="soft"/>
+  <text x="90" y="208" class="sans fg" font-size="17" font-weight="600">pdf.js text runs</text>
+  <text x="90" y="230" class="sans muted" font-size="14.5">OCR on device for scans</text>
+
+  <rect x="319" y="166" width="210" height="90" rx="14" class="soft"/>
+  <text x="337" y="208" class="sans fg" font-size="17" font-weight="600">Layout extraction</text>
+  <text x="337" y="230" class="sans muted" font-size="14.5">lines, columns, tables</text>
+
+  <rect x="566" y="166" width="210" height="90" rx="14" class="soft"/>
+  <text x="584" y="208" class="sans fg" font-size="17" font-weight="600">Chunking</text>
+  <text x="584" y="230" class="sans muted" font-size="14.5">by heading, 1,200 chars</text>
+
+  <path d="M282 211 H315" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M529 211 H562" class="arrow" marker-end="url(#head)"/>
+  
+
+
+  <rect x="50" y="302" width="748" height="280" rx="18" fill="none" class="border" stroke-width="1.5"/>
+  <text x="72" y="340" class="serif fg" font-size="25">Search</text>
+  <text x="776" y="338" text-anchor="end" class="sans muted" font-size="14">hybrid, on this device</text>
+
+  <rect x="72" y="362" width="270" height="56" rx="14" class="soft"/>
+  <text x="90" y="396" class="sans fg" font-size="17" font-weight="600">BM25 keyword index</text>
+  
+
+  <rect x="72" y="430" width="270" height="56" rx="14" class="soft"/>
+  <text x="90" y="464" class="sans fg" font-size="17" font-weight="600">Section routing</text>
+  
+
+  <rect x="72" y="498" width="270" height="64" rx="14" class="soft"/>
+  <text x="90" y="527" class="sans fg" font-size="17" font-weight="600">Sentence vectors</text>
+  <text x="90" y="549" class="sans muted" font-size="14.5">MiniLM in a worker, or Gemini</text>
+
+  <rect x="526" y="417" width="250" height="90" rx="14" class="card"/>
+  <text x="544" y="459" class="sans fg" font-size="17" font-weight="600">Reciprocal rank fusion</text>
+  <text x="544" y="481" class="sans muted" font-size="14.5">orders only, k = 60</text>
+
+  <path d="M342 390 C432 390, 432 448, 522 448" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M342 458 C432 458, 432 462, 522 462" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M342 530 C432 530, 432 476, 522 476" class="arrow" marker-end="url(#head)"/>
+  
+
+
+  <rect x="50" y="602" width="748" height="236" rx="18" fill="none" class="border" stroke-width="1.5"/>
+  <text x="72" y="640" class="serif fg" font-size="25">Understand</text>
+  
+
+  <rect x="72" y="666" width="210" height="90" rx="14" class="soft"/>
+  <text x="90" y="708" class="sans fg" font-size="17" font-weight="600">Lab table parser</text>
+  <text x="90" y="730" class="sans muted" font-size="14.5">cells read by shape</text>
+
+  <rect x="319" y="666" width="210" height="90" rx="14" class="card"/>
+  <text x="337" y="708" class="sans fg" font-size="17" font-weight="600">Range check</text>
+  <text x="337" y="730" class="sans muted" font-size="14.5">decided in code</text>
+
+  <rect x="566" y="666" width="210" height="90" rx="14" class="soft"/>
+  <text x="584" y="708" class="sans fg" font-size="17" font-weight="600">Results panel</text>
+  <text x="584" y="730" class="sans muted" font-size="14.5">trends, page jumps</text>
+
+  <path d="M282 711 H315" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M529 711 H562" class="arrow" marker-end="url(#head)"/>
+  
+<text x="72" y="798" class="sans muted" font-size="15">Report flag, then the printed range, then a typical adult range when units match.</text>
+<text x="72" y="822" class="sans muted" font-size="15">Chat answers and highlight definitions render here too, with every [p.N] a page jump.</text>
+
+
+  <rect x="980" y="24" width="250" height="852" rx="26" class="card"/>
+  <text x="1008" y="66" class="mono muted" font-size="14" letter-spacing="2.2">NEXT.JS ROUTES</text>
+
+  <rect x="1000" y="186" width="210" height="74" rx="14" class="card"/>
+  <text x="1018" y="220" class="mono fg" font-size="17" font-weight="600">/api/embed</text>
+  <text x="1018" y="242" class="sans muted" font-size="14.5">vectors, on request</text>
+
+  <rect x="1000" y="400" width="210" height="74" rx="14" class="card"/>
+  <text x="1018" y="434" class="mono fg" font-size="17" font-weight="600">/api/chat</text>
+  <text x="1018" y="456" class="sans muted" font-size="14.5">streamed answer</text>
+
+  <rect x="1000" y="490" width="210" height="74" rx="14" class="card"/>
+  <text x="1018" y="524" class="mono fg" font-size="17" font-weight="600">/api/define</text>
+  <text x="1018" y="546" class="sans muted" font-size="14.5">streamed definition</text>
+
+  <rect x="1000" y="676" width="210" height="74" rx="14" class="card"/>
+  <text x="1018" y="710" class="mono fg" font-size="17" font-weight="600">/api/labs</text>
+  <text x="1018" y="732" class="sans muted" font-size="14.5">grounded JSON rows</text>
+<rect x="1000" y="84" width="210" height="88" rx="14" fill="none" class="dash"/>
+<text x="1016" y="112" class="sans fg" font-size="15" font-weight="600">Every route</text>
+<text x="1016" y="135" class="sans muted" font-size="13.5">rate limit · size cap · Zod</text>
+<text x="1016" y="155" class="sans muted" font-size="13.5">typed env, key stays here</text>
+<rect x="1000" y="766" width="210" height="86" rx="14" fill="none" class="dash"/>
+<text x="1016" y="796" class="sans fg" font-size="15" font-weight="600">Model output is checked</text>
+<text x="1016" y="818" class="sans muted" font-size="13.5">lab rows must appear on</text>
+<text x="1016" y="836" class="sans muted" font-size="13.5">the page they cite</text>
+
+
+  <path d="M776 211 C886 211, 886 223, 996 223" class="arrow" marker-end="url(#head)"/>
+  <text x="886" y="199" text-anchor="middle" class="sans muted" font-size="13.5">chunk text, cloud search only</text>
+
+  <path d="M776 462 C886 462, 886 437, 996 437" class="arrow" marker-end="url(#head)"/>
+  <text x="886" y="425" text-anchor="middle" class="sans muted" font-size="13.5">question + passages</text>
+
+  <path d="M776 462 C886 462, 886 527, 996 527" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M776 711 C886 711, 886 713, 996 713" class="arrow" marker-end="url(#head)"/>
+  <text x="886" y="699" text-anchor="middle" class="sans muted" font-size="13.5">numeric text, opt in</text>
+
+
+  <rect x="1256" y="24" width="230" height="852" rx="26" class="card"/>
+  <text x="1284" y="66" class="mono muted" font-size="14" letter-spacing="2.2">GOOGLE GEMINI</text>
+
+  <rect x="1274" y="178" width="194" height="90" rx="14" class="soft"/>
+  <text x="1292" y="220" class="sans fg" font-size="17" font-weight="600">Embeddings</text>
+  <text x="1292" y="242" class="sans muted" font-size="14.5">gemini-embedding-001</text>
+
+  <rect x="1274" y="460" width="194" height="90" rx="14" class="soft"/>
+  <text x="1292" y="502" class="sans fg" font-size="17" font-weight="600">Chat model</text>
+  <text x="1292" y="524" class="sans muted" font-size="14.5">gemini-3.7-flash</text>
+
+  <path d="M1210 223 H1270" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M1210 437 C1240 437, 1240 495, 1270 495" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M1210 527 C1240 527, 1240 505, 1270 505" class="arrow" marker-end="url(#head)"/>
+  
+
+  <path d="M1210 713 C1240 713, 1240 515, 1270 515" class="arrow" marker-end="url(#head)"/>
+  
+<text x="1274" y="600" class="sans muted" font-size="13.5">Structured output</text>
+<text x="1274" y="618" class="sans muted" font-size="13.5">for lab rows, text</text>
+<text x="1274" y="636" class="sans muted" font-size="13.5">streams otherwise</text>
+</svg>
