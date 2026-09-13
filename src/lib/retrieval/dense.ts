@@ -1,68 +1,65 @@
 import type { Chunk } from "@/lib/pdf";
-import { toVector, type VectorRecord, type VectorStore } from "@/lib/vector";
 
-import type { RetrievalHit } from "./bm25";
-import type { RetrievalStrategy } from "./service";
-
-/** Embeds passages and returns one vector per passage, in the same order. */
-export type Embedder = (values: readonly string[]) => Promise<number[][]>;
-
-export interface DenseOptions {
-  store: VectorStore;
-  documentId: string;
-  embed: Embedder;
-}
+import type { Strategy } from "./search";
+import { toVector, type VectorRecord, type VectorStore } from "./vectors";
 
 /**
- * What gets embedded for a chunk. The heading trail goes in with the body so a
- * lab row still carries the name of the section it sits under.
+ * Turns texts into vectors, one per text and in the same order. The local model
+ * and the cloud route both fit this shape.
+ */
+export type Embedder = (values: readonly string[]) => Promise<number[][]>;
+
+/**
+ * What we embed for a chunk: its heading trail, then the text. A bare row like
+ * "ALT | 90 | IU/L" means a lot more to the model with "Investigations" in
+ * front of it.
  */
 export function embeddingText(chunk: Chunk): string {
   return [...chunk.headings, chunk.text].join("\n");
 }
 
 /**
- * Embed a document's chunks and hand them to the store. Returns how many were
- * written so a caller can tell an indexed document from an empty one.
+ * Embeds a document's chunks and saves them. Returns how many were written, so
+ * an empty document can be told apart from an indexed one.
  */
 export async function indexDocument({
   store,
   documentId,
   chunks,
   embed,
-}: DenseOptions & { chunks: readonly Chunk[] }): Promise<number> {
+}: {
+  store: VectorStore;
+  documentId: string;
+  chunks: readonly Chunk[];
+  embed: Embedder;
+}): Promise<number> {
   if (chunks.length === 0) return 0;
 
   const vectors = await embed(chunks.map(embeddingText));
-
-  const records: VectorRecord[] = [];
-  chunks.forEach((chunk, index) => {
+  const records: VectorRecord[] = chunks.flatMap((chunk, index) => {
     const vector = vectors[index];
-    if (vector) records.push({ chunk, vector: toVector(vector) });
+    return vector ? [{ chunk, vector: toVector(vector) }] : [];
   });
 
   await store.put(documentId, records);
   return records.length;
 }
 
-/** Nearest-neighbour search over the embedded chunks of one document. */
+/**
+ * Nearest neighbour search over an indexed document. Some models embed a
+ * question differently from a passage, so questions get their own embedder.
+ */
 export function denseStrategy({
   store,
   documentId,
-  embed,
-}: DenseOptions): RetrievalStrategy {
-  return {
-    name: "dense",
-
-    async search(query, limit): Promise<RetrievalHit[]> {
-      const [vector] = await embed([query]);
-      if (!vector) return [];
-
-      const matches = await store.search(documentId, toVector(vector), limit);
-      return matches.map((match) => ({
-        chunk: match.chunk,
-        score: match.score,
-      }));
-    },
+  embedQuery,
+}: {
+  store: VectorStore;
+  documentId: string;
+  embedQuery: Embedder;
+}): Strategy {
+  return async (query, limit) => {
+    const [vector] = await embedQuery([query]);
+    return vector ? store.search(documentId, toVector(vector), limit) : [];
   };
 }

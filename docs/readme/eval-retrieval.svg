@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 390" width="1000" height="390" role="img" aria-label="Retrieval quality by mean reciprocal rank: BM25 0.707, the shipped on-device hybrid with section routing 0.892, Gemini hybrid with section routing 0.894">
+<style>
+  svg {
+    --bg: #f8f2e1; --card: #fdf8eb; --fg: #38352c; --muted: #6f6958; --border: #e2dbc7;
+    --secondary: #e8e1cd; --primary: #eaec53; --on-primary: #38352c; --highlight: #f9f198; --on-hl: #312e24;
+    --success: #688838; --caution: #a96000; --lines: #9f9572; --track: #f0e9d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    svg {
+      --bg: #110f0a; --card: #1c1913; --fg: #e9e6dd; --muted: #a49e8f; --border: #312d26;
+      --secondary: #2c2821; --primary: #e5e75b; --on-primary: #19160e; --highlight: #ece277; --on-hl: #231f14;
+      --success: #8fb35e; --caution: #eaa950; --lines: #726b5b; --track: #24211b;
+    }
+  }
+  .bg { fill: var(--bg); }
+  .card { fill: var(--card); stroke: var(--border); stroke-width: 1.5; }
+  .soft { fill: var(--bg); stroke: var(--border); stroke-width: 1.5; }
+  .fg { fill: var(--fg); }
+  .muted { fill: var(--muted); }
+  .primary { fill: var(--primary); }
+  .on-primary { fill: var(--on-primary); }
+  .hl { fill: var(--highlight); }
+  .on-hl { fill: var(--on-hl); }
+  .serif { font-family: Newsreader, 'Iowan Old Style', 'Palatino Linotype', Georgia, serif; }
+  .sans { font-family: Geist, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+  .mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .lines { stroke: var(--lines); fill: none; }
+  .border { stroke: var(--border); }
+  .track { fill: var(--track); }
+  .success { fill: var(--success); }
+  .caution { fill: var(--caution); }
+  .arrow { stroke: var(--muted); stroke-width: 1.75; fill: none; }
+  .dash { stroke: var(--lines); stroke-width: 1.5; stroke-dasharray: 6 6; fill: none; }
+
+  svg { --accent: #ae794c; --quiet: #bdb49c; --grid: #ebe4d0; }
+  @media (prefers-color-scheme: dark) { svg { --accent: #c89164; --quiet: #5a5446; --grid: #2a2620; } }
+  .accent { fill: var(--accent); } .quiet { fill: var(--quiet); } .gridline { stroke: var(--grid); stroke-width: 1; }
+</style>
+<rect width="1000" height="390" rx="22" class="bg"/>
+<text x="32" y="38" class="sans fg" font-size="17" font-weight="600">Mean reciprocal rank, top 5</text>
+<text x="968" y="38" text-anchor="end" class="sans muted" font-size="13.5">41 questions · 6 synthetic reports · higher is better</text>
+<line x1="250" x2="250" y1="60" y2="340" class="gridline"/>
+    <text x="250" y="362" text-anchor="middle" class="sans muted" font-size="13">0</text><line x1="395" x2="395" y1="60" y2="340" class="gridline"/>
+    <text x="395" y="362" text-anchor="middle" class="sans muted" font-size="13">0.25</text><line x1="540" x2="540" y1="60" y2="340" class="gridline"/>
+    <text x="540" y="362" text-anchor="middle" class="sans muted" font-size="13">0.50</text><line x1="685" x2="685" y1="60" y2="340" class="gridline"/>
+    <text x="685" y="362" text-anchor="middle" class="sans muted" font-size="13">0.75</text><line x1="830" x2="830" y1="60" y2="340" class="gridline"/>
+    <text x="830" y="362" text-anchor="middle" class="sans muted" font-size="13">1.00</text>
+
+    <text x="236" y="92" text-anchor="end" class="sans muted" font-size="14.5" >BM25 keywords</text>
+    <path d="M250 77 H656.2439024390244 Q660.2439024390244 77 660.2439024390244 81 V93 Q660.2439024390244 97 656.2439024390244 97 H250 Z" class="quiet"/>
+    <text x="668.2439024390244" y="92" class="sans fg" font-size="14" font-weight="600">0.707</text>
+    
+    <text x="236" y="138" text-anchor="end" class="sans muted" font-size="14.5" >BM25 + section routing</text>
+    <path d="M250 123 H691.609756097561 Q695.609756097561 123 695.609756097561 127 V139 Q695.609756097561 143 691.609756097561 143 H250 Z" class="quiet"/>
+    
+    
+    <text x="236" y="184" text-anchor="end" class="sans muted" font-size="14.5" >BM25 + MiniLM</text>
+    <path d="M250 169 H742.30081300813 Q746.30081300813 169 746.30081300813 173 V185 Q746.30081300813 189 742.30081300813 189 H250 Z" class="quiet"/>
+    
+    
+    <text x="236" y="230" text-anchor="end" class="sans fg" font-size="14.5" font-weight="600">BM25 + MiniLM + sections</text>
+    <path d="M250 215 H763.5203252032519 Q767.5203252032519 215 767.5203252032519 219 V231 Q767.5203252032519 235 763.5203252032519 235 H250 Z" class="accent"/>
+    <text x="775.5203252032519" y="230" class="sans fg" font-size="14" font-weight="600">0.892</text>
+    <text x="825.5203252032519" y="230" class="sans muted" font-size="13">shipped, on device</text>
+    <text x="236" y="276" text-anchor="end" class="sans muted" font-size="14.5" >Gemini embeddings alone</text>
+    <path d="M250 261 H759.9837398373984 Q763.9837398373984 261 763.9837398373984 265 V277 Q763.9837398373984 281 759.9837398373984 281 H250 Z" class="quiet"/>
+    
+    
+    <text x="236" y="322" text-anchor="end" class="sans muted" font-size="14.5" >BM25 + Gemini + sections</text>
+    <path d="M250 307 H764.6991869918699 Q768.6991869918699 307 768.6991869918699 311 V323 Q768.6991869918699 327 764.6991869918699 327 H250 Z" class="quiet"/>
+    
+    
+</svg>

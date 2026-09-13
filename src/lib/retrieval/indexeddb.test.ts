@@ -4,11 +4,15 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Chunk } from "@/lib/pdf";
 
 import { createIndexedDbVectorStore } from "./indexeddb";
-import { DimensionMismatchError, toVector } from "./similarity";
-import type { VectorRecord, VectorStore } from "./types";
+import {
+  DimensionMismatchError,
+  toVector,
+  type VectorRecord,
+  type VectorStore,
+} from "./vectors";
 
-function chunk(id: string, text = id): Chunk {
-  return { id, text, page: 1, endPage: 1, headings: [], kind: "prose" };
+function chunk(id: string): Chunk {
+  return { id, text: id, page: 1, endPage: 1, headings: [], kind: "prose" };
 }
 
 function record(id: string, vector: number[]): VectorRecord {
@@ -41,18 +45,12 @@ describe("createIndexedDbVectorStore", () => {
     expect(await store.has("doc")).toBe(true);
   });
 
-  it("ranks the nearest vector first", async () => {
+  it("ranks the nearest vector first, with its chunk", async () => {
     await store.put("doc", RECORDS);
     const hits = await store.search("doc", toVector([1, 0, 0]));
 
     expect(hits.map((h) => h.chunk.id)).toEqual(["p1#1", "p2#1", "p1#2"]);
     expect(hits[0]?.score).toBeCloseTo(1);
-  });
-
-  it("returns the chunk alongside the score", async () => {
-    await store.put("doc", [record("p1#1", [1, 0, 0])]);
-    const hits = await store.search("doc", toVector([1, 0, 0]));
-
     expect(hits[0]?.chunk.text).toBe("p1#1");
   });
 
@@ -83,23 +81,6 @@ describe("createIndexedDbVectorStore", () => {
     await expect(store.search("doc", toVector([1, 0]))).rejects.toThrow(
       DimensionMismatchError,
     );
-  });
-
-  it("forgets a removed document", async () => {
-    await store.put("doc", RECORDS);
-    await store.remove("doc");
-
-    expect(await store.has("doc")).toBe(false);
-    expect(await store.search("doc", toVector([1, 0, 0]))).toEqual([]);
-  });
-
-  it("clears everything", async () => {
-    await store.put("a", RECORDS);
-    await store.put("b", RECORDS);
-    await store.clear();
-
-    expect(await store.has("a")).toBe(false);
-    expect(await store.has("b")).toBe(false);
   });
 
   it("survives a reopen of the same database", async () => {

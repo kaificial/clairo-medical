@@ -1,24 +1,20 @@
-import { tokenize } from "./tokenize";
+import { tokenize } from "./lexical";
 
 const DEFAULT_LENGTH = 160;
 const ELLIPSIS = "…";
 
-/** First position in `text` where any query term appears, or -1. */
+/** The first position in `text` where any query term appears, or -1. */
 function firstMatch(text: string, query: string): number {
   const haystack = text.toLowerCase();
-
-  let earliest = -1;
-  for (const term of tokenize(query)) {
-    const at = haystack.indexOf(term);
-    if (at !== -1 && (earliest === -1 || at < earliest)) earliest = at;
-  }
-
-  return earliest;
+  const positions = tokenize(query)
+    .map((term) => haystack.indexOf(term))
+    .filter((position) => position !== -1);
+  return positions.length > 0 ? Math.min(...positions) : -1;
 }
 
 /**
- * A readable window of `text` around the first query term, snapped to word
- * boundaries so a result never opens mid-word.
+ * A readable slice of a passage around the first matching word, for the search
+ * results list. It snaps to word boundaries so a result never starts mid word.
  */
 export function snippet(
   text: string,
@@ -28,24 +24,27 @@ export function snippet(
   const flat = text.replace(/\s+/g, " ").trim();
   if (flat.length <= length) return flat;
 
-  const at = firstMatch(flat, query);
-  if (at === -1) return `${flat.slice(0, length).trimEnd()}${ELLIPSIS}`;
+  const match = firstMatch(flat, query);
+  if (match === -1) return `${flat.slice(0, length).trimEnd()}${ELLIPSIS}`;
 
-  const half = Math.floor(length / 2);
-  let start = Math.max(0, at - half);
-  let end = Math.min(flat.length, start + length);
-  start = Math.max(0, end - length);
+  // Centre the window on the match, and slide it back if that would run past
+  // the end of the text.
+  let end = Math.min(
+    flat.length,
+    Math.max(0, match - Math.floor(length / 2)) + length,
+  );
+  let start = Math.max(0, end - length);
 
   if (start > 0) {
     const space = flat.indexOf(" ", start);
-    if (space !== -1 && space < at) start = space + 1;
+    if (space !== -1 && space < match) start = space + 1;
   }
   if (end < flat.length) {
     const space = flat.lastIndexOf(" ", end);
     if (space > start) end = space;
   }
 
-  return `${start > 0 ? ELLIPSIS : ""}${flat.slice(start, end).trim()}${
-    end < flat.length ? ELLIPSIS : ""
-  }`;
+  const prefix = start > 0 ? ELLIPSIS : "";
+  const suffix = end < flat.length ? ELLIPSIS : "";
+  return `${prefix}${flat.slice(start, end).trim()}${suffix}`;
 }
