@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { modelIdSchema, parseEnv, usableModel } from "./env";
+import {
+  configuredProviders,
+  modelChainSchema,
+  modelIdSchema,
+  parseEnv,
+  usableModel,
+  usableModels,
+} from "./env";
+
+const HAIKU = "us.anthropic.claude-haiku-4-5-20251001-v1:0";
 
 describe("parseEnv", () => {
   it("applies the default models", () => {
@@ -46,6 +55,69 @@ describe("parseEnv", () => {
       parseEnv({ AI_CHAT_MODEL: "gemini", SKIP_ENV_VALIDATION: "false" }),
     ).toThrow();
   });
+
+  it("accepts a chat model followed by a backup", () => {
+    const env = parseEnv({
+      AI_CHAT_MODEL: `google/gemini-3.7-flash, bedrock/${HAIKU}`,
+    });
+
+    expect(env.AI_CHAT_MODEL).toBe(`google/gemini-3.7-flash, bedrock/${HAIKU}`);
+  });
+
+  it("defaults the Bedrock region", () => {
+    expect(parseEnv({}).BEDROCK_REGION).toBe("us-east-1");
+  });
+
+  it("rejects something that is not a role in AWS_ROLE_ARN", () => {
+    expect(() => parseEnv({ AWS_ROLE_ARN: "clairo-app-web" })).toThrow(
+      /AWS_ROLE_ARN/,
+    );
+  });
+
+  it("accepts a role in AWS_ROLE_ARN", () => {
+    const arn = "arn:aws:iam::844038766260:role/clairo-app-web";
+    expect(parseEnv({ AWS_ROLE_ARN: arn }).AWS_ROLE_ARN).toBe(arn);
+  });
+});
+
+describe("modelChainSchema", () => {
+  it("accepts one model", () => {
+    expect(modelChainSchema.safeParse("google/gemini-3.7-flash").success).toBe(
+      true,
+    );
+  });
+
+  it("rejects an empty entry in the list", () => {
+    expect(
+      modelChainSchema.safeParse("google/gemini-3.7-flash,,bedrock/x").success,
+    ).toBe(false);
+  });
+
+  it("rejects a key pasted into the list", () => {
+    expect(
+      modelChainSchema.safeParse("google/gemini-3.7-flash,sk-ant-api03-key")
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe("configuredProviders", () => {
+  it("turns Google on with a key", () => {
+    expect(
+      configuredProviders({ GOOGLE_GENERATIVE_AI_API_KEY: "key" }),
+    ).toEqual({ google: true, bedrock: false });
+  });
+
+  it("turns Bedrock on with a Vercel role or a local profile", () => {
+    expect(
+      configuredProviders({ AWS_ROLE_ARN: "arn:aws:iam::1:role/r" }).bedrock,
+    ).toBe(true);
+    expect(configuredProviders({ AWS_PROFILE: "clairo" }).bedrock).toBe(true);
+  });
+
+  it("leaves both off with nothing set", () => {
+    expect(configuredProviders({})).toEqual({ google: false, bedrock: false });
+  });
 });
 
 describe("modelIdSchema", () => {
@@ -71,23 +143,65 @@ describe("modelIdSchema", () => {
 });
 
 describe("usableModel", () => {
-  it("returns the model name for a google model with a key", () => {
-    expect(usableModel("google/gemini-3.7-flash", "key")).toBe(
-      "gemini-3.7-flash",
-    );
+  const both = { google: true, bedrock: true };
+
+  it("splits a google model into provider and name", () => {
+    expect(usableModel("google/gemini-3.7-flash", both)).toEqual({
+      id: "google/gemini-3.7-flash",
+      provider: "google",
+      name: "gemini-3.7-flash",
+    });
+  });
+
+  it("splits a bedrock model into provider and name", () => {
+    expect(usableModel(`bedrock/${HAIKU}`, both)).toEqual({
+      id: `bedrock/${HAIKU}`,
+      provider: "bedrock",
+      name: HAIKU,
+    });
   });
 
   it("keeps a name that carries its own slashes", () => {
-    expect(usableModel("google/models/gemini-3.7-flash", "key")).toBe(
+    expect(usableModel("google/models/gemini-3.7-flash", both)?.name).toBe(
       "models/gemini-3.7-flash",
     );
   });
 
-  it("switches the feature off without a key", () => {
-    expect(usableModel("google/gemini-3.7-flash", undefined)).toBeNull();
+  it("switches the feature off when the provider is not configured", () => {
+    expect(
+      usableModel("google/gemini-3.7-flash", { bedrock: true }),
+    ).toBeNull();
   });
 
-  it("switches off a model no configured key answers for", () => {
-    expect(usableModel("anthropic/claude-sonnet-5", "key")).toBeNull();
+  it("switches off a provider this app does not support", () => {
+    expect(usableModel("anthropic/claude-sonnet-5", both)).toBeNull();
+  });
+});
+
+describe("usableModels", () => {
+  it("keeps the configured order", () => {
+    const models = usableModels(`bedrock/${HAIKU}, google/gemini-3.7-flash`, {
+      google: true,
+      bedrock: true,
+    });
+
+    expect(models.map((model) => model.provider)).toEqual([
+      "bedrock",
+      "google",
+    ]);
+  });
+
+  it("skips models the server cannot sign in to", () => {
+    const models = usableModels(`bedrock/${HAIKU},google/gemini-3.7-flash`, {
+      google: true,
+    });
+
+    expect(models.map((model) => model.id)).toEqual([
+      "google/gemini-3.7-flash",
+    ]);
+  });
+
+  it("returns nothing when no provider is configured", () => {
+    expect(usableModels("google/gemini-3.7-flash", {})).toEqual([]);
   });
 });

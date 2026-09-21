@@ -258,15 +258,15 @@ and a stream that fails halfway keeps the part that already arrived.
 
 ### Stack
 
-|           |                                                                                          |
-| --------- | ---------------------------------------------------------------------------------------- |
-| App       | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript                               |
-| UI        | Tailwind CSS v4 · shadcn/ui (Radix) · Motion · lucide · Newsreader and Geist             |
-| PDF       | pdf.js (`pdfjs-dist`) via `react-pdf` · tesseract.js for OCR                             |
-| On device | transformers.js (ONNX Runtime Web) · MiniLM L6 sentence embeddings in a Web Worker       |
-| AI        | Vercel AI SDK v7 · `@ai-sdk/google` (Gemini chat and embeddings) · Zod structured output |
-| Storage   | IndexedDB (vectors, in the browser)                                                      |
-| Quality   | Vitest · Playwright · ESLint · Prettier · Husky · GitHub Actions                         |
+|           |                                                                                                                |
+| --------- | -------------------------------------------------------------------------------------------------------------- |
+| App       | Next.js 16 (App Router, Turbopack) · React 19 · TypeScript                                                     |
+| UI        | Tailwind CSS v4 · shadcn/ui (Radix) · Motion · lucide · Newsreader and Geist                                   |
+| PDF       | pdf.js (`pdfjs-dist`) via `react-pdf` · tesseract.js for OCR                                                   |
+| On device | transformers.js (ONNX Runtime Web) · MiniLM L6 sentence embeddings in a Web Worker                             |
+| AI        | Vercel AI SDK v7 · Gemini (chat and embeddings) · Claude on Amazon Bedrock as a backup · Zod structured output |
+| Storage   | IndexedDB (vectors, in the browser)                                                                            |
+| Quality   | Vitest · Playwright · ESLint · Prettier · Husky · GitHub Actions                                               |
 
 ## Run it locally
 
@@ -280,15 +280,18 @@ pnpm dev
 
 Open <http://localhost:3000>, then **Try the example**.
 
-| Variable                       | Default                       | Purpose                                                                                                                                   |
-| ------------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | none                          | A [Google AI Studio key](https://aistudio.google.com/apikey). Switches on chat, definitions, AI lab extraction and cloud semantic search. |
-| `AI_CHAT_MODEL`                | `google/gemini-3.7-flash`     | Chat, definitions and lab extraction, as `provider/model`.                                                                                |
-| `AI_EMBEDDING_MODEL`           | `google/gemini-embedding-001` | Cloud semantic search. On-device search needs no key.                                                                                     |
-| `SKIP_ENV_VALIDATION`          | unset                         | Set to `1` to build with an invalid environment.                                                                                          |
+| Variable                       | Default                       | Purpose                                                                                                                                                                   |
+| ------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | none                          | A [Google AI Studio key](https://aistudio.google.com/apikey). Switches on chat, definitions, AI lab extraction and cloud semantic search.                                 |
+| `AI_CHAT_MODEL`                | `google/gemini-3.7-flash`     | Chat, definitions and lab extraction, as `provider/model`. A comma separated list makes the later models backups, tried in order if the first one fails before answering. |
+| `AI_EMBEDDING_MODEL`           | `google/gemini-embedding-001` | Cloud semantic search. On-device search needs no key.                                                                                                                     |
+| `AWS_PROFILE`                  | none                          | On a laptop, the AWS CLI profile to use for `bedrock/*` models (sign in first with `aws sso login`).                                                                      |
+| `AWS_ROLE_ARN`                 | none                          | On Vercel, the role the site borrows for `bedrock/*` models. It comes from `terraform output vercel_role_arn`, so no AWS keys are stored.                                 |
+| `BEDROCK_REGION`               | `us-east-1`                   | Where Bedrock calls go.                                                                                                                                                   |
+| `SKIP_ENV_VALIDATION`          | unset                         | Set to `1` to build with an invalid environment.                                                                                                                          |
 
-A model id naming a provider with no key leaves that feature switched off
-rather than failing mid request.
+A model id naming a provider the server can't sign in to is skipped, and if
+none are left the feature is switched off rather than failing mid request.
 
 | Script           | What it does                                                                   |
 | ---------------- | ------------------------------------------------------------------------------ |

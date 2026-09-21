@@ -32,9 +32,12 @@
     ]
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.61",
+    "@ai-sdk/amazon-bedrock": "^5.0.86",
+    "@ai-sdk/google": "^4.0.74",
+    "@aws-sdk/credential-providers": "^3.1134.0",
     "@huggingface/transformers": "4.2.0",
-    "ai": "^7.0.87",
+    "@vercel/oidc-aws-credentials-provider": "^3.3.8",
+    "ai": "^7.0.105",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.37.0",

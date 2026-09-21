@@ -1,10 +1,10 @@
 import "server-only";
 
 import { google } from "@ai-sdk/google";
-import { embedMany, streamText, type LanguageModel } from "ai";
+import { embedMany } from "ai";
 import { z } from "zod";
 
-import { env, usableModel } from "@/env";
+import { configuredProviders, env, usableModel, usableModels } from "@/env";
 import {
   jsonError,
   limitRequest,
@@ -13,35 +13,35 @@ import {
 } from "@/lib/guard";
 
 import { describeAiFailure } from "./failure";
+import { streamFirstThatAnswers, type NamedModel } from "./fallback";
 import type { ChatPrompt } from "./prompt";
+import { languageModel } from "./providers";
 import { ANSWER_CONTENT_TYPE, toEventStream } from "./transport";
 
-const chatModelName = usableModel(
-  env.AI_CHAT_MODEL,
-  env.GOOGLE_GENERATIVE_AI_API_KEY,
-);
-const embeddingModelName = usableModel(
-  env.AI_EMBEDDING_MODEL,
-  env.GOOGLE_GENERATIVE_AI_API_KEY,
-);
+const configured = configuredProviders(env);
+const chatChoices = usableModels(env.AI_CHAT_MODEL, configured);
+// Only Google embeddings are wired up, so a Bedrock login doesn't count here.
+const embeddingChoice = usableModel(env.AI_EMBEDDING_MODEL, {
+  google: configured.google,
+});
 
 /**
- * Whether the configured key covers the chat model. Chat, explain and AI lab
+ * Whether at least one chat model can be reached. Chat, explain and AI lab
  * extraction all depend on it.
  */
-export const chatEnabled = chatModelName !== null;
+export const chatEnabled = chatChoices.length > 0;
 /**
- * Whether it covers the embedding model too. Only cloud semantic search needs
- * that.
+ * Whether the embedding model can be reached too. Only cloud semantic search
+ * needs that.
  */
-export const embeddingsEnabled = embeddingModelName !== null;
+export const embeddingsEnabled = embeddingChoice !== null;
 
 class AiNotConfiguredError extends Error {
   override name = "AiNotConfiguredError";
 
   constructor() {
     super(
-      'No AI provider is configured for this feature. Set GOOGLE_GENERATIVE_AI_API_KEY and name a "google/*" model to switch it on.',
+      'No AI provider is configured for this feature. Set GOOGLE_GENERATIVE_AI_API_KEY for "google/*" models, or AWS_ROLE_ARN (Vercel) or AWS_PROFILE (a laptop) for "bedrock/*" models.',
     );
   }
 }
@@ -66,44 +66,37 @@ export const historySchema = z.array(
   }),
 );
 
-export function chatModel(): LanguageModel {
-  if (chatModelName === null) throw new AiNotConfiguredError();
-  return google(chatModelName);
+/** The chat models in the order to try them: the main one, then backups. */
+export function chatModels(): NamedModel[] {
+  if (!chatEnabled) throw new AiNotConfiguredError();
+  return chatChoices.map(languageModel);
 }
 
 export async function embedValues(values: string[]): Promise<number[][]> {
-  if (embeddingModelName === null) throw new AiNotConfiguredError();
+  if (embeddingChoice === null) throw new AiNotConfiguredError();
 
   const { embeddings } = await embedMany({
-    model: google.embeddingModel(embeddingModelName),
+    model: google.embeddingModel(embeddingChoice.name),
     values,
   });
   return embeddings;
 }
 
 /**
- * Streams the chat model's reply as answer events, ending with an error event
- * if the provider gives up halfway.
+ * Streams the reply as answer events, from a backup model if the main one
+ * fails before it starts, and ends with an error event if the answer breaks
+ * off halfway.
  */
-export function streamPrompt({ instructions, messages }: ChatPrompt): Response {
-  // The AI SDK reports provider errors through onError and quietly ends the
-  // text stream, so hold on to the error and send it as the last event.
-  let failure: unknown;
-
-  const result = streamText({
-    model: chatModel(),
-    instructions,
-    messages,
-    onError: ({ error }) => {
-      failure = error;
-      console.error("[ai] stream failed", error);
-    },
-  });
+export async function streamPrompt(prompt: ChatPrompt): Promise<Response> {
+  const { deltas, failure } = await streamFirstThatAnswers(
+    chatModels(),
+    prompt,
+  );
 
   const stream = toEventStream({
-    deltas: result.textStream,
+    deltas,
     describe: (cause) => describeAiFailure(cause).message,
-    failure: () => failure,
+    failure,
   });
 
   return new Response(stream, {

@@ -1,7 +1,8 @@
 import { z } from "zod";
 
+import { firstThatAnswers } from "@/lib/ai/fallback";
 import { extractLabRows } from "@/lib/ai/lab-extraction";
-import { aiRoute, chatModel, chunkSchema } from "@/lib/ai/server";
+import { aiRoute, chatModels, chunkSchema } from "@/lib/ai/server";
 import { MAX_LAB_PASSAGES } from "@/lib/labs";
 
 /**
@@ -19,11 +20,12 @@ export const POST = aiRoute({
   }),
   handle: async ({ passages }, request) =>
     Response.json(
-      await extractLabRows({
-        model: chatModel(),
-        passages,
-        signal: request.signal,
-      }),
+      await firstThatAnswers(
+        chatModels(),
+        ({ model }) =>
+          extractLabRows({ model, passages, signal: request.signal }),
+        request.signal,
+      ),
       { headers: { "cache-control": "no-store" } },
     ),
 });

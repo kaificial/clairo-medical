@@ -74,7 +74,7 @@ export function describeAiFailure(cause: unknown): AiFailure {
     return {
       status: 502,
       message:
-        "The AI provider rejected this app's key. Check GOOGLE_GENERATIVE_AI_API_KEY.",
+        "The AI provider rejected this app's credentials. Check GOOGLE_GENERATIVE_AI_API_KEY or the AWS role.",
     };
   }
 
@@ -92,11 +92,11 @@ export function describeAiFailure(cause: unknown): AiFailure {
     };
   }
 
-  if (status(404)) {
+  if (status(404) || says("model identifier is invalid")) {
     return {
       status: 502,
       message:
-        'The configured model does not exist. AI_CHAT_MODEL and AI_EMBEDDING_MODEL take a "google/model" id such as "google/gemini-3.7-flash".',
+        'The configured model does not exist. AI_CHAT_MODEL and AI_EMBEDDING_MODEL take "provider/model" ids such as "google/gemini-3.7-flash".',
     };
   }
 

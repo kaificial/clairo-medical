@@ -23,7 +23,29 @@ describe("describeAiFailure", () => {
       ),
     );
 
-    expect(failure.message).toContain("rejected this app's key");
+    expect(failure.message).toContain("rejected this app's credentials");
+  });
+
+  it("points at the credentials when Bedrock turns the role away", () => {
+    const failure = describeAiFailure(
+      providerError(
+        '{"message":"User is not authorized to perform: bedrock:InvokeModel"}',
+        403,
+      ),
+    );
+
+    expect(failure.message).toContain("AWS role");
+  });
+
+  it("names a Bedrock model id that does not exist", () => {
+    const failure = describeAiFailure(
+      providerError(
+        '{"message":"The provided model identifier is invalid."}',
+        400,
+      ),
+    );
+
+    expect(failure.message).toContain("AI_CHAT_MODEL");
   });
 
   it("names a missing model without repeating what was configured", () => {
