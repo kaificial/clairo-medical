@@ -50,6 +50,28 @@ export const DEFINITION_INSTRUCTIONS = [
   "- If the highlighted text is not a medical term, say plainly that there is nothing to define.",
 ].join("\n");
 
+export const EXACT_DEFINITION_INSTRUCTIONS = [
+  "Someone reading their own medical report highlighted a word or phrase and wants the dictionary definition, not how it relates to their report.",
+  "",
+  "Rules:",
+  "- Give the exact, precise definition of the term. Medical vocabulary is fine here.",
+  "- Do not mention the report or any passage. Define only the term itself.",
+  "- Under 40 words. No lists, no headings, no preamble, no sign-off.",
+  "- Expand abbreviations before defining them.",
+  "- Never give a diagnosis, a prognosis, or treatment advice.",
+  "- If the highlighted text is not a definable term, say plainly that there is nothing to define.",
+].join("\n");
+
+export const SIMPLIFY_INSTRUCTIONS = [
+  "Rewrite the following explanation so a fifth grader can understand it on the first read.",
+  "",
+  "Rules:",
+  "- Keep every [p.N] citation exactly where it supports the same claim as before.",
+  "- Use short sentences and everyday words. Explain any word a young reader would not know.",
+  "- Keep the same meaning. Do not add facts or drop the caveats about not being a diagnosis.",
+  "- Under 60 words. No lists, no headings, no preamble, no sign-off.",
+].join("\n");
+
 const LAB_INSTRUCTIONS = [
   "You extract laboratory test results from passages of someone's medical report.",
   "",
@@ -144,6 +166,20 @@ export function buildDefinitionPrompt({
   return {
     instructions: DEFINITION_INSTRUCTIONS,
     messages: [{ role: "user", content }],
+  };
+}
+
+export function buildExactDefinitionPrompt(term: string): ChatPrompt {
+  return {
+    instructions: EXACT_DEFINITION_INSTRUCTIONS,
+    messages: [{ role: "user", content: `Term: ${term}` }],
+  };
+}
+
+export function buildSimplifyPrompt(text: string): ChatPrompt {
+  return {
+    instructions: SIMPLIFY_INSTRUCTIONS,
+    messages: [{ role: "user", content: text }],
   };
 }
 

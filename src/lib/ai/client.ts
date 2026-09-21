@@ -122,12 +122,28 @@ export function askQuestion({
 export function explainTerm({
   term,
   passages,
+  mode = "explain",
   ...options
 }: StreamOptions & {
   term: string;
   passages: readonly Chunk[];
+  /**
+   * "explain" grounds the answer in the report's own passages. "exact" skips
+   * the report and gives the plain dictionary definition of the term.
+   */
+  mode?: "explain" | "exact";
 }): Promise<string> {
-  return streamAnswer("/api/define", { term, passages }, options);
+  return streamAnswer("/api/define", { term, passages, mode }, options);
+}
+
+/**
+ * Rewrites an answer already on screen so a fifth grader could follow it.
+ */
+export function simplifyText({
+  text,
+  ...options
+}: StreamOptions & { text: string }): Promise<string> {
+  return streamAnswer("/api/simplify", { text }, options);
 }
 
 /**

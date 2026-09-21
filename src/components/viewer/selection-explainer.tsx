@@ -1,13 +1,15 @@
 "use client";
 
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Loader2, Pencil, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   AiUnavailableError,
   explainTerm,
   failureMessage,
+  simplifyText,
 } from "@/lib/ai/client";
 import type { Chunk } from "@/lib/pdf";
 import type { Search } from "@/lib/retrieval";
@@ -17,16 +19,25 @@ import { useTextSelection, type TextSelection } from "./use-text-selection";
 
 const MAX_PASSAGES = 4;
 const PANEL_WIDTH = 320;
-const PILL_WIDTH = 132;
+const PILL_WIDTH = 220;
 const GAP = 8;
 const EDGE = 12;
+
+type Mode = "explain" | "exact";
 
 interface Explanation {
   term: string;
   rect: DOMRect;
+  mode: Mode;
   text: string;
   status: "streaming" | "done" | "error";
   error?: string;
+  /** The plain reading, once asked for. Kept alongside the original so the
+   * reader can flip back without asking the model twice. */
+  simple: string | null;
+  simplifying: boolean;
+  /** Which of `text` / `simple` is on screen right now. */
+  showing: "original" | "simple";
 }
 
 /**
@@ -38,8 +49,8 @@ function comparable(text: string): string {
 }
 
 /**
- * A mousedown would normally clear the reader's selection, and the Explain
- * button would disappear before its click landed.
+ * A mousedown would normally clear the reader's selection, and the pill's
+ * buttons would disappear before their click landed.
  */
 function keepSelection(event: React.MouseEvent) {
   event.preventDefault();
@@ -80,9 +91,11 @@ function anchor(rect: DOMRect, width: number): { top: number; left: number } {
 }
 
 /**
- * Highlight any word in the report and a small "Explain this" button appears
- * next to it. The answer shows up right by the word rather than off in a
- * sidebar, so the reader doesn't lose their place.
+ * Highlight any word in the report and a small pill appears next to it, offering
+ * a report-grounded explanation or the plain dictionary definition. The answer
+ * shows up right by the word rather than off in a sidebar, so the reader
+ * doesn't lose their place, and it can be reworded at a fifth grade level with
+ * one more click.
  */
 export function SelectionExplainer({
   containerRef,
@@ -131,24 +144,38 @@ export function SelectionExplainer({
     );
   }
 
-  async function explain({ text: term, rect }: TextSelection) {
+  async function explain({ text: term, rect }: TextSelection, mode: Mode) {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
 
-    setExplanation({ term, rect, text: "", status: "streaming" });
+    setExplanation({
+      term,
+      rect,
+      mode,
+      text: "",
+      status: "streaming",
+      simple: null,
+      simplifying: false,
+      showing: "original",
+    });
 
     try {
-      const related = search ? await search(term, MAX_PASSAGES) : [];
-      const passages = orderPassages(
-        term,
-        chunks ?? [],
-        related.map((hit) => hit.chunk),
-      );
+      const related =
+        mode === "explain" && search ? await search(term, MAX_PASSAGES) : [];
+      const passages =
+        mode === "explain"
+          ? orderPassages(
+              term,
+              chunks ?? [],
+              related.map((hit) => hit.chunk),
+            )
+          : [];
 
       await explainTerm({
         term,
         passages,
+        mode,
         signal: controller.signal,
         onDelta: (delta) =>
           amend(term, (current) => ({
@@ -178,10 +205,44 @@ export function SelectionExplainer({
     }
   }
 
+  async function simplify(term: string, text: string) {
+    amend(term, (current) => ({ ...current, simplifying: true, simple: "" }));
+
+    try {
+      await simplifyText({
+        text,
+        onDelta: (delta) =>
+          amend(term, (current) => ({
+            ...current,
+            simple: (current.simple ?? "") + delta,
+          })),
+      });
+      amend(term, (current) => ({
+        ...current,
+        simplifying: false,
+        showing: "simple",
+      }));
+    } catch {
+      // The original explanation is still on screen, so a failed simplify
+      // just quietly leaves it there rather than showing a second error.
+      amend(term, (current) => ({
+        ...current,
+        simplifying: false,
+        simple: null,
+      }));
+    }
+  }
+
   if (unavailable) return null;
 
   if (explanation) {
     const { top, left } = anchor(explanation.rect, PANEL_WIDTH);
+    const shown =
+      explanation.showing === "simple" && explanation.simple !== null
+        ? explanation.simple
+        : explanation.text;
+    const canSimplify =
+      explanation.status === "done" && explanation.text.length > 0;
 
     return (
       <div
@@ -189,10 +250,13 @@ export function SelectionExplainer({
         aria-label={`What ${explanation.term} means`}
         style={{ top, left, width: PANEL_WIDTH }}
         onMouseDown={keepSelection}
-        className="bg-popover fixed z-50 flex flex-col gap-2 rounded-xl border p-3 shadow-lg"
+        className="bg-popover animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 fixed z-50 flex origin-top flex-col gap-2.5 rounded-2xl border p-3.5 shadow-lg duration-150"
       >
         <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-medium break-words">{explanation.term}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Logo className="text-muted-foreground size-3.5 shrink-0" />
+            <p className="truncate text-sm font-medium">{explanation.term}</p>
+          </div>
           <Button
             variant="ghost"
             size="icon-xs"
@@ -208,9 +272,9 @@ export function SelectionExplainer({
           className="text-muted-foreground text-sm leading-relaxed"
           aria-live="polite"
         >
-          <AnswerText text={explanation.text} onJump={onJump} />
-          {explanation.status === "streaming" &&
-          explanation.text.length === 0 ? (
+          <AnswerText text={shown} onJump={onJump} />
+          {(explanation.status === "streaming" && shown.length === 0) ||
+          explanation.simplifying ? (
             <Loader2 className="inline size-3.5 animate-spin" />
           ) : null}
         </p>
@@ -219,6 +283,44 @@ export function SelectionExplainer({
           <p className="text-destructive text-xs" role="alert">
             {explanation.error}
           </p>
+        ) : null}
+
+        {canSimplify ? (
+          <div className="flex items-center gap-1 border-t pt-2">
+            {explanation.simple === null ? (
+              <button
+                type="button"
+                onClick={() =>
+                  void simplify(explanation.term, explanation.text)
+                }
+                disabled={explanation.simplifying}
+                className="text-muted-foreground hover:text-foreground rounded-pill flex items-center gap-1 text-xs transition-colors disabled:opacity-60"
+              >
+                <Pencil className="size-3" />
+                Simplify
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={explanation.simplifying}
+                onClick={() =>
+                  amend(explanation.term, (current) => ({
+                    ...current,
+                    showing:
+                      current.showing === "simple" ? "original" : "simple",
+                  }))
+                }
+                className="text-muted-foreground hover:text-foreground rounded-pill flex items-center gap-1 text-xs transition-colors disabled:opacity-60"
+              >
+                <Pencil className="size-3" />
+                {explanation.simplifying
+                  ? "Simplifying..."
+                  : explanation.showing === "simple"
+                    ? "Show original"
+                    : "Simplify again"}
+              </button>
+            )}
+          </div>
         ) : null}
       </div>
     );
@@ -229,17 +331,29 @@ export function SelectionExplainer({
   const { top, left } = anchor(selection.rect, PILL_WIDTH);
 
   return (
-    <Button
-      variant="secondary"
-      size="xs"
-      style={{ top, left }}
+    <div
+      role="group"
+      aria-label={`Explain or define "${selection.text}"`}
+      style={{ top, left, width: PILL_WIDTH }}
       onMouseDown={keepSelection}
-      onClick={() => void explain(selection)}
-      aria-label={`Explain "${selection.text}"`}
-      className="rounded-pill fixed z-50 shadow-md"
+      className="bg-popover animate-in fade-in-0 zoom-in-95 rounded-pill fixed z-50 flex items-stretch overflow-hidden border shadow-md duration-100"
     >
-      <Sparkles />
-      Explain this
-    </Button>
+      <button
+        type="button"
+        onClick={() => void explain(selection, "explain")}
+        className="hover:bg-accent flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors"
+      >
+        <Logo className="size-3.5" />
+        Explain
+      </button>
+      <div className="bg-border w-px shrink-0" aria-hidden />
+      <button
+        type="button"
+        onClick={() => void explain(selection, "exact")}
+        className="hover:bg-accent flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors"
+      >
+        Definition
+      </button>
+    </div>
   );
 }

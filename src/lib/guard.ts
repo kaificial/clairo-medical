@@ -26,6 +26,7 @@ export const ROUTE_LIMITS = {
   define: { limit: 40, windowMs: MINUTE },
   embed: { limit: 10, windowMs: MINUTE },
   labs: { limit: 6, windowMs: MINUTE },
+  simplify: { limit: 40, windowMs: MINUTE },
 } as const satisfies Record<string, RateLimitRule>;
 
 export const DAILY_LIMIT: RateLimitRule = {
