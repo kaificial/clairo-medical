@@ -15,13 +15,32 @@ async function openExample(page: Page) {
 
 const pageIndicator = (page: Page) => page.getByText(/^\d+ \/ 3$/);
 
+const APP_ORIGIN = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3100")
+  .origin;
+
 /**
- * Only calls to our own API count. Model downloads from Hugging Face or
- * jsDelivr are fine, since they carry nothing from the report.
+ * Only calls to our own API count, wherever the app is running. Model
+ * downloads from Hugging Face or jsDelivr are fine, since they carry nothing
+ * from the report.
  */
 function isAppApi(url: string): boolean {
-  const { hostname, pathname } = new URL(url);
-  return hostname === "localhost" && pathname.startsWith("/api/");
+  const { origin, pathname } = new URL(url);
+  return origin === APP_ORIGIN && pathname.startsWith("/api/");
+}
+
+/**
+ * Collects anything the browser blocked because of our security policy. If a
+ * library starts loading from somewhere new, this names the address instead of
+ * leaving a feature quietly broken.
+ */
+function watchPolicyViolations(page: Page): string[] {
+  const violations: string[] = [];
+  page.on("console", (message) => {
+    if (message.text().includes("Content Security Policy")) {
+      violations.push(message.text());
+    }
+  });
+  return violations;
 }
 
 test("the landing page opens the example report", async ({ page }) => {
@@ -87,6 +106,7 @@ test("semantic search runs on this device and finds what keywords miss", async (
   page.on("request", (request) => {
     if (isAppApi(request.url())) apiCalls.push(request.url());
   });
+  const violations = watchPolicyViolations(page);
 
   await openExample(page);
   const search = page.getByRole("searchbox", { name: "Search this report" });
@@ -105,6 +125,7 @@ test("semantic search runs on this device and finds what keywords miss", async (
   await expect(results).toContainText(/urinary|prostat|urine/i);
 
   expect(apiCalls).toEqual([]);
+  expect(violations).toEqual([]);
 });
 
 test("a streamed answer renders its citations as page jumps", async ({
@@ -206,11 +227,14 @@ test("AI lab extraction reports what it found and what it dropped", async ({
 });
 
 test("a scanned report is read with on-device OCR", async ({ page }) => {
-  test.slow();
+  // The first run downloads the recognition engine, so leave room for the
+  // two minute wait below.
+  test.setTimeout(180_000);
   const apiCalls: string[] = [];
   page.on("request", (request) => {
     if (isAppApi(request.url())) apiCalls.push(request.url());
   });
+  const violations = watchPolicyViolations(page);
 
   await page.goto("/viewer");
   await page
@@ -240,6 +264,7 @@ test("a scanned report is read with on-device OCR", async ({ page }) => {
   // OCR happens in the browser, so nothing from the scanned page should reach
   // our server.
   expect(apiCalls).toEqual([]);
+  expect(violations).toEqual([]);
 });
 
 test("a file that is not a PDF is refused before anything reads it", async ({

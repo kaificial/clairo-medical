@@ -18,6 +18,15 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "retain-on-failure",
+    // Vercel keeps preview deployments private. CI gets past that with a
+    // bypass secret, sent on the first request and then kept as a cookie.
+    extraHTTPHeaders: process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? {
+          "x-vercel-protection-bypass":
+            process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+          "x-vercel-set-bypass-cookie": "true",
+        }
+      : undefined,
   },
   projects: [
     {

@@ -1,0 +1,63 @@
+name: Deployed site
+
+# Vercel tells GitHub each time a deployment finishes. When it does, this runs
+# the browser tests against the real URL, so a build that works on a laptop but
+# not on Vercel is caught before anyone else sees it.
+#
+# Previews get the full suite. Production gets a quick smoke test: the health
+# check, the security headers and the landing page.
+#
+# Needs the repository secret VERCEL_AUTOMATION_BYPASS_SECRET (Vercel project
+# settings, Deployment Protection, Protection Bypass for Automation) so the
+# tests can open previews, which Vercel keeps private.
+
+on: deployment_status
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: test ${{ github.event.deployment_status.environment }}
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      PRODUCTION: ${{ contains(github.event.deployment_status.environment, 'Production') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke test production
+        if: env.PRODUCTION == 'true'
+        run: pnpm exec playwright test -g "health check|security headers|landing page"
+
+      - name: Full suite on the preview
+        if: env.PRODUCTION != 'true'
+        run: pnpm test:e2e
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-deployed
+          path: |
+            playwright-report
+            test-results
