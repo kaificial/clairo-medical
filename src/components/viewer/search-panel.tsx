@@ -1,8 +1,9 @@
 "use client";
 
-import { Loader2, Search as SearchIcon, Sparkles } from "lucide-react";
+import { Loader2, Search as SearchIcon } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   AiUnavailableError,
@@ -251,7 +252,7 @@ function SemanticToggle({
         className="text-muted-foreground flex items-center gap-1.5 px-1 text-xs"
         role="status"
       >
-        <Sparkles className="size-3" />
+        <Logo className="size-3" />
         Semantic search on,{" "}
         {semantic.engine === "device"
           ? "running on this device"
@@ -282,7 +283,7 @@ function SemanticToggle({
           className="rounded-pill"
           onClick={() => onEnable("device")}
         >
-          <Sparkles />
+          <Logo />
           Turn on semantic search
         </Button>
         <span className="text-muted-foreground text-xs text-pretty">

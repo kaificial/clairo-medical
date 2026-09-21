@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/logo";
-import { NAV_LINKS } from "@/components/site-header";
+import { NAV_LINKS } from "@/components/nav-links";
 
 export function SiteFooter() {
   return (

@@ -4,12 +4,12 @@ import {
   FlaskConical,
   Info,
   Loader2,
-  Sparkles,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   AiUnavailableError,
@@ -204,7 +204,7 @@ function ModelReadControl({
   if (model.status === "done") {
     return (
       <p className="text-muted-foreground flex gap-2 text-xs" role="status">
-        <Sparkles className="mt-0.5 size-3.5 shrink-0" />
+        <Logo className="mt-0.5 size-3.5 shrink-0" />
         <span>{modelReadSummary(model.rows.length, model.discarded)}</span>
       </p>
     );
@@ -221,7 +221,7 @@ function ModelReadControl({
         disabled={reading}
         onClick={onRead}
       >
-        {reading ? <Loader2 className="animate-spin" /> : <Sparkles />}
+        {reading ? <Loader2 className="animate-spin" /> : <Logo />}
         {reading ? "Reading..." : "Find results in the text"}
       </Button>
       <span className="text-muted-foreground text-xs text-pretty">
@@ -370,7 +370,7 @@ function SeriesRow({
       ) : null}
       {latest.source === "model" ? (
         <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <Sparkles className="size-3" />
+          <Logo className="size-3" />
           Read by AI and found on the page
         </span>
       ) : null}

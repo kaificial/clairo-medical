@@ -1,13 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { Logo } from "@/components/logo";
+import { NAV_LINKS } from "@/components/nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-
-export const NAV_LINKS = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#privacy", label: "Privacy" },
-] as const;
+import { cn } from "@/lib/utils";
 
 const GITHUB_URL = "https://github.com/kaificial/clairo-medical";
 
@@ -15,9 +15,18 @@ const LINK =
   "hover:text-foreground focus-visible:ring-ring/50 rounded-sm transition-colors outline-none focus-visible:ring-[3px]";
 
 export function SiteHeader() {
+  // The analysis workspace holds the PDF and chat side by side at max-w-7xl,
+  // so the nav above it widens to match instead of looking cramped over it.
+  const isAnalysis = usePathname()?.startsWith("/viewer");
+
   return (
     <header className="sticky top-0 z-50 px-4 pt-4">
-      <div className="rounded-pill border-border/70 bg-card/75 mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 border py-2 pr-3 pl-5 backdrop-blur-md">
+      <div
+        className={cn(
+          "rounded-pill border-border/70 bg-card/75 mx-auto flex h-14 items-center justify-between gap-4 border py-2 pr-3 pl-5 backdrop-blur-md transition-[max-width] duration-200",
+          isAnalysis ? "max-w-7xl" : "max-w-5xl",
+        )}
+      >
         <Link
           href="/"
           className="rounded-pill focus-visible:ring-ring/50 flex items-center gap-2 outline-none focus-visible:ring-[3px]"
