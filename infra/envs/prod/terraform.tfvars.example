@@ -1,0 +1,16 @@
+# Copy this file to terraform.tfvars and fill it in. terraform.tfvars is ignored
+# by git, so your email address and account details stay on your machine.
+
+alert_emails = ["you@example.com"]
+
+# Printed by the bootstrap step as state_bucket.
+state_bucket = "clairo-tfstate-123456789012"
+
+# The part after vercel.com/ when you open your team on Vercel.
+vercel_team_slug = "your-team"
+
+# monthly_budget_usd         = 10
+# create_anomaly_monitor     = false
+# github_repository          = "kaificial/clairo-medical"
+# vercel_project             = "clairo-medical"
+# bedrock_inference_profiles = ["us.anthropic.claude-haiku-4-5-20251001-v1:0"]

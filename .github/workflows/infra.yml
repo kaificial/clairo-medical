@@ -1,0 +1,142 @@
+name: Infrastructure
+
+# Checks every change to infra/, previews it against the real AWS account on
+# pull requests, and applies it after a person approves. The AWS steps only run
+# once the repository variables below exist, so this is safe before the account
+# is set up.
+#
+# Repository variables (Settings, Secrets and variables, Actions, Variables):
+#   AWS_PLAN_ROLE_ARN   from `terraform output github_plan_role_arn`
+#   AWS_APPLY_ROLE_ARN  from `terraform output github_apply_role_arn`
+#   TF_STATE_BUCKET     from the bootstrap step
+#   ALERT_EMAILS        a JSON list, for example ["you@example.com"]
+#   VERCEL_TEAM_SLUG    the part after vercel.com/ in your Vercel team's URL
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  push:
+    branches: [main]
+    paths: ["infra/**", ".github/workflows/infra.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two changes against the same account at the same time.
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_VERSION: 1.16.2
+  TF_IN_AUTOMATION: "1"
+  TF_INPUT: "0"
+  AWS_REGION: us-east-1
+  ROOT: infra/envs/prod
+  TF_VAR_state_bucket: ${{ vars.TF_STATE_BUCKET }}
+  TF_VAR_alert_emails: ${{ vars.ALERT_EMAILS }}
+  TF_VAR_vercel_team_slug: ${{ vars.VERCEL_TEAM_SLUG }}
+
+jobs:
+  check:
+    name: format · validate · lint · security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Format
+        run: terraform -chdir=infra fmt -check -recursive -diff
+
+      - name: Validate
+        run: |
+          for root in infra/bootstrap infra/envs/prod; do
+            terraform -chdir="$root" init -backend=false
+            terraform -chdir="$root" validate
+          done
+
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.64.0
+
+      - name: Lint
+        working-directory: infra
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          tflint --init
+          tflint --recursive --config "$PWD/.tflint.hcl" --format compact
+
+      - name: Security scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infra
+          framework: terraform
+          quiet: true
+          compact: true
+
+  plan:
+    name: preview against AWS
+    needs: check
+    if: vars.AWS_PLAN_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Plan
+        run: |
+          terraform -chdir="$ROOT" init -backend-config="bucket=$TF_VAR_state_bucket"
+          terraform -chdir="$ROOT" plan -lock-timeout=2m -out=tfplan
+          {
+            echo "## Terraform preview"
+            echo '```'
+            terraform -chdir="$ROOT" show -no-color tfplan | tail -n 200
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: apply to AWS
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_APPLY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    # The "production" environment requires a reviewer, so nothing changes in
+    # AWS until a person has read the preview and said yes.
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Apply
+        run: |
+          terraform -chdir="$ROOT" init -backend-config="bucket=$TF_VAR_state_bucket"
+          terraform -chdir="$ROOT" plan -lock-timeout=2m -out=tfplan
+          terraform -chdir="$ROOT" apply -lock-timeout=2m tfplan

@@ -11,3 +11,4 @@ evals/results.md
 evals/.cache/
 playwright-report/
 test-results/
+.terraform/
