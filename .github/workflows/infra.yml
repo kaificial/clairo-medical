@@ -82,7 +82,10 @@ jobs:
   plan:
     name: preview against AWS
     needs: check
-    if: vars.AWS_PLAN_ROLE_ARN != ''
+    # Dependabot PRs never get an OIDC token or secrets, by GitHub's own
+    # design, so this would fail every time regardless of the AWS side. The
+    # format/validate/lint/security-scan checks above still run on them.
+    if: vars.AWS_PLAN_ROLE_ARN != '' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
