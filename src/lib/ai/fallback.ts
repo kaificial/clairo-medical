@@ -1,5 +1,6 @@
 import { streamText, type LanguageModel } from "ai";
 
+import { describeForLogs } from "./failure";
 import type { ChatPrompt } from "./prompt";
 
 export interface NamedModel {
@@ -11,7 +12,7 @@ export interface NamedModel {
 function announce(failed: NamedModel, next: NamedModel, cause?: unknown) {
   const line = `[ai] ${failed.id} failed, trying ${next.id}`;
   if (cause === undefined) console.warn(line);
-  else console.warn(line, cause);
+  else console.warn(`${line}. ${describeForLogs(cause)}`);
 }
 
 /**
@@ -84,7 +85,9 @@ export async function streamFirstThatAnswers(
     let failure: unknown;
     const fail = (cause: unknown) => {
       failure = cause;
-      console.error(`[ai] ${current.id} stream failed`, cause);
+      console.error(
+        `[ai] ${current.id} stream failed. ${describeForLogs(cause)}`,
+      );
     };
     const result = streamText({
       model: current.model,

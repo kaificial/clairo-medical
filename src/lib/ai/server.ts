@@ -12,7 +12,7 @@ import {
   type LimitedRoute,
 } from "@/lib/guard";
 
-import { describeAiFailure } from "./failure";
+import { describeAiFailure, describeForLogs } from "./failure";
 import { streamFirstThatAnswers, type NamedModel } from "./fallback";
 import type { ChatPrompt } from "./prompt";
 import { languageModel } from "./providers";
@@ -141,7 +141,7 @@ export function aiRoute<T>({
         return jsonError(cause.message, 503);
       }
 
-      console.error(`[${route}] request failed`, cause);
+      console.error(`[${route}] request failed. ${describeForLogs(cause)}`);
       const failure = describeAiFailure(cause);
       return jsonError(failure.message, failure.status);
     }

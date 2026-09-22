@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeAiFailure } from "./failure";
+import { describeAiFailure, describeForLogs } from "./failure";
 
 function providerError(body: string, statusCode: number): Error {
   const cause = Object.assign(new Error(body), {
@@ -35,6 +35,19 @@ describe("describeAiFailure", () => {
     );
 
     expect(failure.message).toContain("AWS role");
+  });
+
+  it("says cloud AI is paused when the budget kill switch has tripped", () => {
+    const failure = describeAiFailure(
+      providerError(
+        '{"message":"User: arn:aws:sts::1:assumed-role/clairo-app-web/x is not authorized to perform: bedrock:InvokeModelWithResponseStream on resource: arn:aws:bedrock:us-east-1:1:inference-profile/y with an explicit deny in an identity-based policy"}',
+        403,
+      ),
+    );
+
+    expect(failure.status).toBe(503);
+    expect(failure.message).toContain("paused");
+    expect(failure.message).not.toContain("clairo-app-web");
   });
 
   it("names a Bedrock model id that does not exist", () => {
@@ -103,5 +116,34 @@ describe("describeAiFailure", () => {
     looped.cause = looped;
 
     expect(describeAiFailure(looped).status).toBe(502);
+  });
+});
+
+describe("describeForLogs", () => {
+  it("keeps the report out of the logs", () => {
+    const cause = Object.assign(new Error("Too many requests"), {
+      name: "AI_APICallError",
+      statusCode: 429,
+      requestBodyValues: {
+        messages: [{ role: "user", content: "Potassium 5.8 mmol/L, p.2" }],
+      },
+      responseBody: '{"message":"Rate exceeded for Potassium 5.8"}',
+    });
+    const retry = Object.assign(new Error("Failed after 3 attempts"), {
+      name: "AI_RetryError",
+      lastError: cause,
+      text: "model output naming Potassium 5.8",
+    });
+
+    const line = describeForLogs(retry);
+
+    expect(line).toContain("AI_RetryError < AI_APICallError");
+    expect(line).toContain("status 429");
+    expect(line).toContain("rate limiting");
+    expect(line).not.toContain("Potassium");
+  });
+
+  it("copes with something that is not an error", () => {
+    expect(describeForLogs(undefined)).toContain("undefined");
   });
 });

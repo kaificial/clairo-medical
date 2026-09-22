@@ -1,0 +1,12 @@
+# The workflows pin each GitHub Action to an exact commit, so a moved tag can't
+# swap in different code. This opens one pull request a month to bump those
+# pins, so they still pick up fixes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

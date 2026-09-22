@@ -43,6 +43,43 @@ function collect(
   collect(record.lastError, found, seen, depth + 1);
 }
 
+function outline(
+  value: unknown,
+  found: { names: string[]; statuses: number[] },
+  seen = new Set<unknown>(),
+  depth = 0,
+): void {
+  if (typeof value !== "object" || value === null) return;
+  if (depth > MAX_DEPTH || seen.has(value)) return;
+  seen.add(value);
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.name === "string") found.names.push(record.name);
+  for (const key of ["statusCode", "status"]) {
+    const field = record[key];
+    if (typeof field === "number") found.statuses.push(field);
+  }
+
+  outline(record.cause, found, seen, depth + 1);
+  outline(record.lastError, found, seen, depth + 1);
+}
+
+/**
+ * A one line account of a failure that is safe to write to the server logs.
+ * Provider errors carry the whole request they sent, which here means
+ * passages from someone's medical report, so only error names, status codes
+ * and our own wording get through.
+ */
+export function describeForLogs(cause: unknown): string {
+  const found = { names: [] as string[], statuses: [] as number[] };
+  outline(cause, found);
+
+  const names = [...new Set(found.names)].join(" < ") || typeof cause;
+  const statuses = [...new Set(found.statuses)];
+  const status = statuses.length > 0 ? ` (status ${statuses.join(", ")})` : "";
+  return `${names}${status}: ${describeAiFailure(cause).message}`;
+}
+
 /**
  * Turns whatever the provider threw into a message the reader can act on: wait
  * and try again, or ask whoever runs the app to fix the key or the model.
@@ -57,6 +94,16 @@ export function describeAiFailure(cause: unknown): AiFailure {
   const status = (code: number) => found.statuses.includes(code);
   const says = (...phrases: string[]) =>
     phrases.some((phrase) => text.includes(phrase));
+
+  // The budget kill switch works by denying the site's AWS role. A 503 is how
+  // the browser knows to hide the feature instead of showing an error.
+  if (says("explicit deny")) {
+    return {
+      status: 503,
+      message:
+        "Cloud AI is paused until next month to stay within this app's budget.",
+    };
+  }
 
   if (status(429) || says("rate limit", "resource_exhausted", "quota")) {
     return {

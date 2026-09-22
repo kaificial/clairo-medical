@@ -119,4 +119,24 @@ describe("readJson", () => {
 
     expect(statuses).toEqual([413, 400, 400]);
   });
+
+  it("stops reading a body that hides its size and keeps going", async () => {
+    let pulled = 0;
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new TextEncoder().encode("x".repeat(32)));
+      },
+    });
+    const input = new Request("http://localhost/api/chat", {
+      method: "POST",
+      body: endless,
+      duplex: "half",
+    } as RequestInit);
+
+    const result = await readJson(input, schema, options);
+
+    expect(result.ok ? 200 : result.response.status).toBe(413);
+    expect(pulled).toBeLessThan(10);
+  });
 });

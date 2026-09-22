@@ -152,6 +152,35 @@ export const limitRequest = createGuard();
 type ReadResult<T> = { ok: true; data: T } | { ok: false; response: Response };
 
 /**
+ * Reads the body a piece at a time and gives up as soon as it passes
+ * `maxBytes`. Checking the content-length header alone isn't enough, because a
+ * sender can leave it out and stream as much as the platform allows.
+ */
+async function readCapped(
+  request: Request,
+  maxBytes: number,
+): Promise<string | "too large"> {
+  if (!request.body) return "";
+
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      return "too large";
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
+}
+
+/**
  * Reads, size checks, parses and validates the body before anything reaches the
  * provider. A bad request should cost us nothing.
  */
@@ -184,11 +213,12 @@ export async function readJson<T>(
 
   let text: string;
   try {
-    text = await request.text();
+    const body = await readCapped(request, maxBytes);
+    if (body === "too large") return tooLarge;
+    text = body;
   } catch {
     return malformed;
   }
-  if (new TextEncoder().encode(text).length > maxBytes) return tooLarge;
 
   let body: unknown;
   try {

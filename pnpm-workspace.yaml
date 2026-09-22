@@ -1,3 +1,9 @@
+# transformers.js is pinned so the search eval stays comparable, but two of the
+# Node helpers it pulls in had security fixes since. Use the fixed versions.
+overrides:
+  sharp: ^0.35.4
+  adm-zip: ^0.6.1
+
 allowBuilds:
   onnxruntime-node: false
   protobufjs: false

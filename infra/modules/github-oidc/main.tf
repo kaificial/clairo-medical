@@ -25,6 +25,7 @@ locals {
   workload_roles   = "arn:${local.partition}:iam::${local.account}:role/clairo-app-*"
   workload_policy  = "arn:${local.partition}:iam::${local.account}:policy/clairo-app-*"
   github_roles     = "arn:${local.partition}:iam::${local.account}:role/clairo-github-*"
+  kill_switch_arn  = "arn:${local.partition}:iam::${local.account}:policy/clairo-app-kill-switch"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -221,6 +222,41 @@ data "aws_iam_policy_document" "apply" {
     sid       = "KeepBoundariesOn"
     effect    = "Deny"
     actions   = ["iam:DeleteRolePermissionsBoundary"]
+    resources = ["*"]
+  }
+
+  # The budget kill switch is a safety net, so it belongs with the keys too. A
+  # merged change must not be able to weaken it, lift it mid-month, or remove
+  # the budget action that trips it.
+  statement {
+    sid       = "LeaveTheKillSwitchAlone"
+    effect    = "Deny"
+    actions   = ["iam:*"]
+    resources = [local.kill_switch_arn]
+  }
+
+  statement {
+    sid       = "NoFlippingTheKillSwitch"
+    effect    = "Deny"
+    actions   = ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
+    resources = ["*"]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "iam:PolicyARN"
+      values   = [local.kill_switch_arn]
+    }
+  }
+
+  statement {
+    sid    = "KeepTheBudgetAction"
+    effect = "Deny"
+    actions = [
+      "budgets:CreateBudgetAction",
+      "budgets:UpdateBudgetAction",
+      "budgets:DeleteBudgetAction",
+      "budgets:ExecuteBudgetAction",
+    ]
     resources = ["*"]
   }
 }

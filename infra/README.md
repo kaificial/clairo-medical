@@ -23,6 +23,10 @@ surprise bill.
 - **A spending limit comes first.** Before anything else exists, a $10 monthly
   budget sends an email at $1, at $5, at $10, and as soon as the month looks
   on track to go over.
+- **And it actually stops spending.** Emails alone don't stop a bill. Once $8
+  has really been spent, AWS itself blocks the website's paid AI calls until
+  the next month starts, and the app quietly falls back to Gemini. AWS only
+  updates costs a few times a day, which is why it trips before the full $10.
 - **No passwords or keys are stored anywhere.** GitHub proves who it is to AWS
   with a short lived signed note each time a workflow runs (this is called
   OIDC). There is nothing permanent that could leak.
@@ -44,6 +48,7 @@ surprise bill.
 | `modules/budgets/`     | The spending limit and its warning emails.                                                     |
 | `modules/github-oidc/` | The two GitHub roles (preview, and apply with approval) and the workload boundary.             |
 | `modules/vercel-oidc/` | The role the website on Vercel borrows to ask Claude on Bedrock, again with no stored keys.    |
+| `modules/kill-switch/` | Blocks the website's paid AI calls when the month's budget runs low, until the next month.     |
 
 ## First time setup
 
@@ -95,8 +100,9 @@ You need the [AWS CLI](https://aws.amazon.com/cli/) and
 
 Open a pull request that touches `infra/` and the workflow previews the change
 against the real account. Merge it, approve the `production` deployment, and it
-is applied. Changes to the GitHub roles, the boundary, or the trust with GitHub
-or Vercel are the exception: apply those yourself with step 4.
+is applied. Changes to the GitHub roles, the boundary, the trust with GitHub
+or Vercel, or the kill switch are the exception: apply those yourself with
+step 4.
 
 ## Tearing it down
 
