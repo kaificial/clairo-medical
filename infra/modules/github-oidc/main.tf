@@ -26,6 +26,13 @@ locals {
   workload_policy  = "arn:${local.partition}:iam::${local.account}:policy/clairo-app-*"
   github_roles     = "arn:${local.partition}:iam::${local.account}:role/clairo-github-*"
   kill_switch_arn  = "arn:${local.partition}:iam::${local.account}:policy/clairo-app-kill-switch"
+
+  # GitHub embeds immutable owner/repo IDs in the "sub" claim, as
+  # "owner@owner_id/repo@repo_id", once either has ever been renamed - this
+  # stops someone from reclaiming an old name to hijack the trust. Match both
+  # forms so a rename never silently breaks these roles.
+  repo_owner = split("/", var.repository)[0]
+  repo_name  = split("/", var.repository)[1]
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -38,10 +45,15 @@ data "aws_iam_policy_document" "trust" {
     # Pull requests and the main branch may preview.
     plan = [
       "repo:${var.repository}:pull_request",
+      "repo:${local.repo_owner}@*/${local.repo_name}@*:pull_request",
       "repo:${var.repository}:ref:refs/heads/main",
+      "repo:${local.repo_owner}@*/${local.repo_name}@*:ref:refs/heads/main",
     ]
     # Only a job in the approved "production" environment may change things.
-    apply = ["repo:${var.repository}:environment:production"]
+    apply = [
+      "repo:${var.repository}:environment:production",
+      "repo:${local.repo_owner}@*/${local.repo_name}@*:environment:production",
+    ]
   }
 
   statement {
