@@ -15,6 +15,12 @@ variable "alert_emails" {
   type        = list(string)
 }
 
+variable "kill_switch_percent" {
+  description = "How much of the monthly budget, in percent, may be spent before paid AI calls stop."
+  type        = number
+  default     = 80
+}
+
 variable "create_anomaly_monitor" {
   description = "Also email about unusual spending. Leave off if the account already has a services monitor."
   type        = bool

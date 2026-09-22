@@ -36,3 +36,4 @@ crash.log
 *.pem
 .vercel
 *.log
+*.webp

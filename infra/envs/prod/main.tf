@@ -40,3 +40,14 @@ module "vercel_oidc" {
   boundary_arn       = module.github_oidc.workload_boundary_arn
   inference_profiles = var.bedrock_inference_profiles
 }
+
+# When most of the month's budget is spent, AWS itself blocks the site's paid
+# AI calls until the next month starts.
+module "kill_switch" {
+  source = "../../modules/kill-switch"
+
+  budget_name       = module.budgets.budget_name
+  role_name         = module.vercel_oidc.role_name
+  threshold_percent = var.kill_switch_percent
+  alert_emails      = var.alert_emails
+}

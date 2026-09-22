@@ -13,6 +13,11 @@ output "vercel_role_arn" {
   value       = module.vercel_oidc.role_arn
 }
 
+output "kill_switch_policy_arn" {
+  description = "Detach this from clairo-app-web to turn paid AI back on before the month ends."
+  value       = module.kill_switch.pause_policy_arn
+}
+
 output "budget_name" {
   value = module.budgets.budget_name
 }
