@@ -19,10 +19,10 @@ permissions:
 jobs:
   e2e:
     name: test ${{ github.event.deployment_status.environment }}
-    if: github.event.deployment_status.state == 'success'
+    if: github.event.deployment_status.state == 'success' && github.event.deployment_status.environment_url != ''
     runs-on: ubuntu-latest
     env:
-      E2E_BASE_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      E2E_BASE_URL: ${{ github.event.deployment_status.environment_url }}
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       PRODUCTION: ${{ contains(github.event.deployment_status.environment, 'Production') }}
     steps:
