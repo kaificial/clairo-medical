@@ -219,10 +219,11 @@ data "aws_iam_policy_document" "apply" {
 
   # Hands off the keys to the building. Changes to these roles, the boundary, or
   # the GitHub trust are made by a person on their own machine, never by CI.
+  # Reading them is still allowed, because every plan has to look at them.
   statement {
-    sid     = "ProtectIdentity"
-    effect  = "Deny"
-    actions = ["iam:*"]
+    sid         = "ProtectIdentity"
+    effect      = "Deny"
+    not_actions = ["iam:Get*", "iam:List*"]
     resources = [
       local.github_roles,
       local.boundary_arn,
@@ -241,10 +242,10 @@ data "aws_iam_policy_document" "apply" {
   # merged change must not be able to weaken it, lift it mid-month, or remove
   # the budget action that trips it.
   statement {
-    sid       = "LeaveTheKillSwitchAlone"
-    effect    = "Deny"
-    actions   = ["iam:*"]
-    resources = [local.kill_switch_arn]
+    sid         = "LeaveTheKillSwitchAlone"
+    effect      = "Deny"
+    not_actions = ["iam:Get*", "iam:List*"]
+    resources   = [local.kill_switch_arn]
   }
 
   statement {
