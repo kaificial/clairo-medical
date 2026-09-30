@@ -1,8 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-import { DemoVideo } from "@/components/demo-video";
 import { HeroMotif } from "@/components/hero-motif";
+import { HeroPreview } from "@/components/hero-preview";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -67,7 +67,7 @@ export default function Home() {
             </div>
           </div>
 
-          <DemoVideo className="w-full lg:mt-3 lg:justify-self-end" />
+          <HeroPreview className="lg:mt-3 lg:justify-self-end" />
         </div>
       </section>
 

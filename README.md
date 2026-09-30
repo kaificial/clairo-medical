@@ -254,7 +254,7 @@ and a stream that fails halfway keeps the part that already arrived.
   when a variable is malformed.
 - **Accessibility built in**: tab roles wired to their panels, live regions for
   streamed answers, search results and model downloads, visible focus rings,
-  and reduced motion respected by the hero and the demo.
+  and reduced motion respected by the hero and its preview.
 
 ### Stack
 
@@ -304,9 +304,6 @@ none are left the feature is switched off rather than failing mid request.
 | `pnpm test:e2e`  | Playwright against a production build (`PW_CHANNEL=chrome` to use your Chrome) |
 | `pnpm eval`      | The evaluation harness; `EVAL_CLOUD=1` adds Gemini embeddings                  |
 | `pnpm format`    | Prettier                                                                       |
-
-The landing page plays `public/demo.mp4` beside the headline when the file
-exists, and leaves the space out when it does not.
 
 ## Project layout
 
