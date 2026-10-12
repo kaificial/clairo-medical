@@ -24,6 +24,7 @@ export function SiteFooter() {
             <Link
               key={item.href}
               href={item.href}
+              transitionTypes={["nav-back"]}
               className="hover:text-foreground"
             >
               {item.label}

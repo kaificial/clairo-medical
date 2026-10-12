@@ -20,7 +20,8 @@ export function SiteHeader() {
   const isAnalysis = usePathname()?.startsWith("/viewer");
 
   return (
-    <header className="sticky top-0 z-50 px-4 pt-4">
+    // Named so it can be held still while the page under it changes.
+    <header className="sticky top-0 z-50 px-4 pt-4 [view-transition-name:site-header]">
       <div
         className={cn(
           "rounded-pill border-border/70 bg-card/75 mx-auto flex h-14 items-center justify-between gap-4 border py-2 pr-3 pl-5 backdrop-blur-md transition-[max-width] duration-200",
@@ -29,6 +30,7 @@ export function SiteHeader() {
       >
         <Link
           href="/"
+          transitionTypes={["nav-back"]}
           className="rounded-pill focus-visible:ring-ring/50 flex items-center gap-2 outline-none focus-visible:ring-[3px]"
         >
           <Logo className="size-6" />
@@ -39,7 +41,12 @@ export function SiteHeader() {
 
         <nav className="text-muted-foreground hidden items-center gap-7 text-sm sm:flex">
           {NAV_LINKS.map((item) => (
-            <Link key={item.href} href={item.href} className={LINK}>
+            <Link
+              key={item.href}
+              href={item.href}
+              transitionTypes={["nav-back"]}
+              className={LINK}
+            >
               {item.label}
             </Link>
           ))}
@@ -67,7 +74,9 @@ export function SiteHeader() {
           </Button>
           <ThemeToggle />
           <Button asChild className="rounded-pill">
-            <Link href="/viewer">Start analysis</Link>
+            <Link href="/viewer" transitionTypes={["nav-forward"]}>
+              Start analysis
+            </Link>
           </Button>
         </div>
       </div>
