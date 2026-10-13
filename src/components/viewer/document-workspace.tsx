@@ -21,7 +21,7 @@ const PdfViewer = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="bg-muted/40 flex min-h-[60vh] flex-1 items-center justify-center rounded-xl border">
+      <div className="bg-muted/40 shimmer flex min-h-[60vh] flex-1 items-center justify-center rounded-xl border">
         <p className="text-muted-foreground text-sm">Loading viewer...</p>
       </div>
     ),
@@ -199,7 +199,7 @@ function DocumentView({
           <FileText className="text-muted-foreground size-4 shrink-0" />
           <span className="truncate text-sm font-medium">{source.name}</span>
           {extracted ? (
-            <span className="text-muted-foreground shrink-0 font-mono text-xs">
+            <span className="text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-left-1 shrink-0 font-mono text-xs motion-safe:duration-500">
               {extracted.pages.length} pages · {sections} sections
             </span>
           ) : null}
@@ -211,7 +211,7 @@ function DocumentView({
             className="rounded-pill"
             onClick={onOpenAnother}
           >
-            <Upload />
+            <Upload className="group-hover/button:-translate-y-0.5" />
             Open another
           </Button>
           <Button
@@ -221,7 +221,7 @@ function DocumentView({
             aria-label="Close document"
             onClick={onClose}
           >
-            <X />
+            <X className="group-hover/button:rotate-90" />
           </Button>
         </div>
       </div>
@@ -306,13 +306,59 @@ function DropZone({
         else onError("That drop did not contain a file.");
       }}
       className={cn(
-        "flex min-h-[60vh] flex-col items-center justify-center gap-4 rounded-xl border border-dashed p-10 text-center transition-colors",
-        dragging ? "border-primary bg-accent/40" : "bg-muted/30",
+        "group/drop relative isolate flex min-h-[60vh] flex-col items-center justify-center gap-4 rounded-xl p-10 text-center transition-colors duration-300",
+        dragging ? "bg-accent/50" : "bg-muted/30 hover:bg-muted/50",
       )}
     >
-      <Upload className="text-muted-foreground size-6" />
+      {/* Drawn as an SVG so the dashes can march round the edge while a file
+          is held over the drop zone. */}
+      <svg
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 size-full overflow-visible"
+      >
+        <rect
+          x="0.5"
+          y="0.5"
+          // rounded-xl is 22px; the stroke sits half a pixel inside it.
+          rx="21.5"
+          style={{ width: "calc(100% - 1px)", height: "calc(100% - 1px)" }}
+          fill="none"
+          strokeWidth={dragging ? 1.5 : 1}
+          strokeDasharray="6 6"
+          className={cn(
+            "transition-[stroke] duration-300",
+            dragging
+              ? "stroke-foreground/60 motion-safe:animate-[dash-march_600ms_linear_infinite]"
+              : "stroke-border group-hover/drop:stroke-foreground/30",
+          )}
+        />
+      </svg>
+
+      <span className="relative grid place-items-center">
+        <span
+          aria-hidden
+          className={cn(
+            "bg-highlight/60 absolute size-12 rounded-full transition-[scale,opacity] duration-500",
+            dragging
+              ? "scale-100 opacity-100 motion-safe:animate-ping"
+              : "scale-50 opacity-0",
+          )}
+        />
+        <span
+          className={cn(
+            "bg-card relative grid size-12 place-items-center rounded-full border shadow-sm transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+            dragging
+              ? "-translate-y-1.5 scale-110"
+              : "motion-safe:animate-[float-y_3.2s_ease-in-out_infinite]",
+          )}
+        >
+          <Upload className="text-muted-foreground size-5" />
+        </span>
+      </span>
       <div className="space-y-1">
-        <p className="font-serif text-xl tracking-tight">Open your report</p>
+        <p className="font-serif text-xl tracking-tight">
+          {dragging ? "Let go to open it" : "Open your report"}
+        </p>
         <p className="text-muted-foreground max-w-sm text-sm text-pretty">
           Drop a PDF here, or choose one from your device
         </p>
@@ -328,7 +374,11 @@ function DropZone({
       </div>
 
       {error ? (
-        <p className="text-destructive text-sm" role="alert">
+        <p
+          key={error}
+          className="text-destructive text-sm motion-safe:animate-[shake-x_400ms_ease-in-out]"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Search as SearchIcon } from "lucide-react";
+import { ArrowRight, Loader2, Search as SearchIcon } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 import { Logo } from "@/components/logo";
@@ -23,6 +23,9 @@ import {
   type RetrievalHit,
   type Search,
 } from "@/lib/retrieval";
+import { cn } from "@/lib/utils";
+
+import { cascade, HOVER_ARROW, LIFT, RISE_IN } from "./list-motion";
 
 const MAX_RESULTS = 5;
 const MB = 1024 * 1024;
@@ -177,8 +180,8 @@ export function SearchPanel({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="focus-within:border-ring focus-within:ring-ring/50 rounded-pill flex items-center gap-2 border px-3 py-1.5 focus-within:ring-[3px]">
-        <SearchIcon className="text-muted-foreground size-4 shrink-0" />
+      <div className="group/search focus-within:border-ring focus-within:ring-ring/50 rounded-pill bg-card/60 focus-within:bg-card flex items-center gap-2 border px-3 py-1.5 transition-[background-color,box-shadow,border-color] duration-300 focus-within:ring-[3px]">
+        <SearchIcon className="text-muted-foreground group-focus-within/search:text-foreground size-4 shrink-0 transition-[color,rotate,scale] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-focus-within/search:scale-110 group-focus-within/search:-rotate-12" />
         <input
           type="search"
           value={query}
@@ -212,18 +215,27 @@ export function SearchPanel({
               Nothing in this report matches that.
             </p>
           ) : (
-            hits.map(({ chunk }) => (
+            hits.map(({ chunk }, index) => (
               <button
                 key={chunk.id}
                 type="button"
                 onClick={() => onJump(chunk.page)}
-                className="hover:bg-accent focus-visible:ring-ring/50 flex flex-col gap-1 rounded-lg border px-3 py-2 text-left outline-none focus-visible:ring-2"
+                className={cn(
+                  "group/item hover:bg-accent hover:border-foreground/20 focus-visible:ring-ring/50 flex flex-col gap-1 rounded-lg border px-3 py-2 text-left outline-none focus-visible:ring-2",
+                  RISE_IN,
+                  LIFT,
+                )}
+                style={cascade(index)}
               >
                 <span className="text-muted-foreground flex items-center gap-2 font-mono text-xs">
                   <span>Page {chunk.page}</span>
                   {chunk.headings.length > 0 ? (
                     <span className="truncate">{chunk.headings.at(-1)}</span>
                   ) : null}
+                  <ArrowRight
+                    aria-hidden
+                    className={cn("ml-auto", HOVER_ARROW)}
+                  />
                 </span>
                 <span className="text-sm leading-relaxed">
                   {snippet(chunk.text, query)}

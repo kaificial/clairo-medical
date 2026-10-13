@@ -26,7 +26,7 @@ import {
   type TextContentSource,
   type TextItem,
 } from "@/lib/pdf";
-import { cn, pageList } from "@/lib/utils";
+import { cn, pageList, prefersReducedMotion } from "@/lib/utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -37,6 +37,8 @@ const MIN_SCALE = 0.6;
 const MAX_SCALE = 2.4;
 const STEP = 0.2;
 const DEFAULT_SCALE = 1.1;
+/** How far, in pixels, a new page slides in from when you turn to it. */
+const PAGE_SHIFT = 18;
 
 /**
  * Where we are in reading the PDF's text. This runs alongside rendering, so the
@@ -93,6 +95,8 @@ export function PdfViewer({
   const [extraction, setExtraction] = useState<Extraction>({ status: "idle" });
 
   const extractionRef = useRef<AbortController | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const shownPage = useRef(requestedPage);
   const pdfRef = useRef<PdfSource | null>(null);
   const itemsRef = useRef<TextItem[][]>([]);
 
@@ -175,6 +179,24 @@ export function PdfViewer({
   const last = numPages || 1;
   const page = clamp(requestedPage, 1, last);
 
+  // Turning a page slides the new one in from the side you're heading
+  // toward. It animates the sheet that's already there, so the canvas is
+  // never torn down and there's no blank flash.
+  useEffect(() => {
+    const from = shownPage.current;
+    shownPage.current = page;
+    const sheet = sheetRef.current;
+    if (!sheet || from === page || prefersReducedMotion()) return;
+    const shift = page > from ? PAGE_SHIFT : -PAGE_SHIFT;
+    sheet.animate(
+      [
+        { opacity: 0.35, transform: `translateX(${shift}px)` },
+        { opacity: 1, transform: "translateX(0)" },
+      ],
+      { duration: 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+    );
+  }, [page]);
+
   const goToPage = (next: number) => onPageChange(clamp(next, 1, last));
   const zoom = (delta: number) =>
     setScale((current) =>
@@ -213,7 +235,16 @@ export function PdfViewer({
             className="text-muted-foreground min-w-24 text-center font-mono text-xs tabular-nums"
             aria-live="polite"
           >
-            {status === "ready" ? `${page} / ${numPages}` : "–"}
+            {status === "ready" ? (
+              <span
+                key={page}
+                className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-90 inline-block motion-safe:duration-300"
+              >
+                {page} / {numPages}
+              </span>
+            ) : (
+              "–"
+            )}
           </span>
           <ToolbarButton
             label="Next page"
@@ -292,13 +323,15 @@ export function PdfViewer({
           }
           className="h-max"
         >
-          <Page
-            pageNumber={page}
-            scale={scale}
-            renderAnnotationLayer={false}
-            loading={<ViewerMessage>Rendering page...</ViewerMessage>}
-            className="overflow-hidden rounded-lg border shadow-sm"
-          />
+          <div ref={sheetRef}>
+            <Page
+              pageNumber={page}
+              scale={scale}
+              renderAnnotationLayer={false}
+              loading={<ViewerMessage>Rendering page...</ViewerMessage>}
+              className="overflow-hidden rounded-lg border shadow-sm transition-shadow duration-300 hover:shadow-md"
+            />
+          </div>
         </Document>
       </div>
     </div>
@@ -439,7 +472,7 @@ function TextStatus({ extraction }: { extraction: Extraction }) {
 
 function ViewerMessage({ children }: { children: ReactNode }) {
   return (
-    <p className="text-muted-foreground py-16 text-center text-sm">
+    <p className="text-muted-foreground shimmer rounded-lg px-10 py-16 text-center text-sm">
       {children}
     </p>
   );

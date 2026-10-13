@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  ArrowRight,
   FlaskConical,
   Info,
   Loader2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { Logo } from "@/components/logo";
@@ -34,6 +36,8 @@ import {
 } from "@/lib/labs";
 import type { Chunk } from "@/lib/pdf";
 import { cn, pageList } from "@/lib/utils";
+
+import { cascade, cascadeDelay, HOVER_ARROW, RISE_IN } from "./list-motion";
 
 type ModelRead =
   | { status: "idle" }
@@ -81,6 +85,9 @@ function modelReadSummary(found: number, discarded: number): string {
 }
 
 const percent = (fraction: number) => `${fraction * 100}%`;
+
+/** The gauge dots wait for their row to arrive before they sweep out. */
+const GAUGE_WAIT_MS = 250;
 
 export function LabResults({
   tableRows,
@@ -152,9 +159,9 @@ export function LabResults({
           </div>
 
           <ul className="flex flex-col divide-y overflow-y-auto lg:max-h-[52vh]">
-            {series.map((entry) => (
-              <li key={entry.key}>
-                <SeriesRow series={entry} onJump={onJump} />
+            {series.map((entry, index) => (
+              <li key={entry.key} className={RISE_IN} style={cascade(index)}>
+                <SeriesRow series={entry} order={index} onJump={onJump} />
               </li>
             ))}
           </ul>
@@ -237,8 +244,14 @@ function ModelReadControl({
   );
 }
 
-function Gauge({ series }: { series: LabSeries }) {
+/**
+ * The latest reading's dot starts in the middle of the normal band and sweeps
+ * out to where the value really is, so a result far out of range visibly
+ * travels further than one just over the line.
+ */
+function Gauge({ series, order }: { series: LabSeries; order: number }) {
   const { latest } = series;
+  const reduce = useReducedMotion();
   if (!latest.range) return null;
 
   const scale = rangeScale(latest.value, latest.range);
@@ -265,12 +278,19 @@ function Gauge({ series }: { series: LabSeries }) {
           style={{ left: percent(point.marker) }}
         />
       ))}
-      <span
+      <motion.span
         className={cn(
-          "ring-card absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2",
+          "ring-card absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 transition-[scale] duration-300 group-hover/item:scale-125",
           isOutOfRange(series) ? "bg-caution" : "bg-success",
         )}
-        style={{ left: percent(scale.marker) }}
+        initial={reduce ? false : { left: percent((start + end) / 2) }}
+        animate={{ left: percent(scale.marker) }}
+        transition={{
+          type: "spring",
+          stiffness: 90,
+          damping: 14,
+          delay: cascadeDelay(order, GAUGE_WAIT_MS) / 1000,
+        }}
       />
     </div>
   );
@@ -303,9 +323,11 @@ function rangeNote(result: LabResult): string {
 
 function SeriesRow({
   series,
+  order,
   onJump,
 }: {
   series: LabSeries;
+  order: number;
   onJump: (page: number) => void;
 }) {
   const { latest } = series;
@@ -315,7 +337,7 @@ function SeriesRow({
     <button
       type="button"
       onClick={() => onJump(latest.page)}
-      className="hover:bg-accent/60 focus-visible:ring-ring/50 flex w-full flex-col gap-1.5 px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset"
+      className="group/item hover:bg-accent/60 focus-visible:ring-ring/50 before:bg-foreground/40 active:bg-accent relative flex w-full flex-col gap-1.5 px-4 py-3 text-left transition-colors outline-none before:absolute before:inset-y-3 before:left-0 before:w-0.5 before:origin-center before:scale-y-0 before:rounded-full before:transition-transform before:duration-300 hover:before:scale-y-100 focus-visible:ring-2 focus-visible:ring-inset"
     >
       <span className="flex items-start justify-between gap-3">
         <span className="min-w-0">
@@ -349,11 +371,14 @@ function SeriesRow({
         <Trend series={series} />
       </span>
 
-      <Gauge series={series} />
+      <Gauge series={series} order={order} />
 
       <span className="text-muted-foreground flex items-center justify-between gap-3 text-xs">
         <span>{rangeNote(latest)}</span>
-        <span className="font-mono">p.{latest.page}</span>
+        <span className="group-hover/item:text-foreground flex items-center gap-1 font-mono transition-colors duration-300">
+          p.{latest.page}
+          <ArrowRight aria-hidden className={HOVER_ARROW} />
+        </span>
       </span>
 
       {latest.conflict ? (

@@ -1,6 +1,11 @@
 "use client";
 
-import { CornerDownLeft, Loader2, MessageCircle } from "lucide-react";
+import {
+  ArrowRight,
+  CornerDownLeft,
+  Loader2,
+  MessageCircle,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,8 +16,10 @@ import {
 } from "@/lib/ai/client";
 import type { ChatMessage } from "@/lib/ai/prompt";
 import type { Search } from "@/lib/retrieval";
+import { cn } from "@/lib/utils";
 
 import { AnswerText } from "./answer-text";
+import { cascade, HOVER_ARROW, LIFT, RISE_IN } from "./list-motion";
 
 const PASSAGE_COUNT = 6;
 
@@ -28,6 +35,25 @@ interface Turn {
   answer: string;
   status: "streaming" | "done" | "error";
   error?: string;
+}
+
+/** Three dots that bob in turn while the answer is on its way. */
+function Typing() {
+  return (
+    <span
+      className="text-muted-foreground flex h-4 items-center gap-1"
+      role="status"
+      aria-label="Writing an answer"
+    >
+      {[0, 1, 2].map((dot) => (
+        <span
+          key={dot}
+          className="size-1.5 rounded-full bg-current motion-safe:animate-[typing-dot_1.1s_ease-in-out_infinite]"
+          style={{ animationDelay: `${dot * 140}ms` }}
+        />
+      ))}
+    </span>
+  );
 }
 
 function toHistory(turns: readonly Turn[]): ChatMessage[] {
@@ -130,30 +156,49 @@ export function ChatPanel({
               Answers come only from this document, and cite the page they came
               from.
             </p>
-            {SUGGESTIONS.map((suggestion) => (
+            {SUGGESTIONS.map((suggestion, index) => (
               <button
                 key={suggestion}
                 type="button"
                 disabled={!search}
                 onClick={() => void ask(suggestion)}
-                className="hover:bg-accent focus-visible:ring-ring/50 rounded-lg border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 disabled:opacity-50"
+                className={cn(
+                  "group/item hover:bg-accent hover:border-foreground/20 focus-visible:ring-ring/50 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 disabled:opacity-50",
+                  RISE_IN,
+                  LIFT,
+                )}
+                style={cascade(index, 120)}
               >
                 {suggestion}
+                <ArrowRight
+                  className={cn("text-muted-foreground", HOVER_ARROW)}
+                />
               </button>
             ))}
           </div>
         ) : (
           turns.map((turn) => (
-            <article key={turn.id} className="flex flex-col gap-2">
-              <p className="text-sm font-medium">{turn.question}</p>
+            <article
+              key={turn.id}
+              className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 flex flex-col gap-2 motion-safe:duration-300"
+            >
+              <p className="bg-secondary/70 self-end rounded-2xl rounded-br-md px-3 py-1.5 text-sm font-medium">
+                {turn.question}
+              </p>
               {turn.answer.length > 0 ? (
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   <AnswerText text={turn.answer} onJump={onJump} />
+                  {turn.status === "streaming" ? (
+                    <span
+                      aria-hidden
+                      className="bg-foreground/60 ml-0.5 inline-block h-[1em] w-0.5 translate-y-[0.15em] motion-safe:animate-[caret-blink_1s_steps(1)_infinite]"
+                    />
+                  ) : null}
                 </p>
               ) : null}
 
               {turn.status === "streaming" && turn.answer.length === 0 ? (
-                <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
+                <Typing />
               ) : null}
 
               {turn.status === "error" ? (
@@ -167,7 +212,7 @@ export function ChatPanel({
       </div>
 
       <form
-        className="flex items-center gap-2 border-t p-3"
+        className="focus-within:bg-accent/30 flex items-center gap-2 border-t p-3 transition-colors duration-300"
         onSubmit={(event) => {
           event.preventDefault();
           const question = draft.trim();
@@ -189,7 +234,11 @@ export function ChatPanel({
           disabled={!ready || draft.trim().length === 0}
           aria-label="Send question"
         >
-          {busy ? <Loader2 className="animate-spin" /> : <CornerDownLeft />}
+          {busy ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <CornerDownLeft className="group-hover/button:-translate-x-0.5" />
+          )}
         </Button>
       </form>
     </section>

@@ -22,7 +22,7 @@ export function AnswerText({
             key={`${part.page}-${index}`}
             type="button"
             onClick={() => onJump(part.page)}
-            className="text-foreground hover:bg-accent mx-0.5 rounded border px-1 align-baseline font-mono text-[0.7rem]"
+            className="text-foreground hover:bg-highlight hover:text-highlight-foreground hover:border-highlight focus-visible:ring-ring/50 mx-0.5 inline-block rounded border px-1 align-baseline font-mono text-[0.7rem] transition-[background-color,color,border-color,translate] duration-200 outline-none hover:-translate-y-px focus-visible:ring-2 active:translate-y-0"
           >
             p.{part.page}
           </button>

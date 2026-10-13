@@ -1,6 +1,7 @@
 "use client";
 
 import { FlaskConical, MessageCircle } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 import { useId, useMemo, useState } from "react";
 
 import { readLabTables } from "@/lib/labs";
@@ -52,6 +53,7 @@ export function InsightPanel({
   const tab: Tab = chosen ?? (aiEnabled && noLabs ? "ask" : "results");
 
   const tabs = TABS.filter((entry) => aiEnabled || entry.value !== "ask");
+  const reduce = useReducedMotion();
 
   return (
     <aside
@@ -73,13 +75,27 @@ export function InsightPanel({
             aria-controls={panelId(value)}
             onClick={() => setChosen(value)}
             className={cn(
-              "rounded-pill focus-visible:ring-ring/50 flex items-center gap-1.5 px-3 py-1.5 text-sm outline-none focus-visible:ring-2",
+              "group/tab rounded-pill focus-visible:ring-ring/50 relative isolate flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors outline-none focus-visible:ring-2 active:scale-[0.97] motion-reduce:active:scale-100",
               tab === value
-                ? "bg-secondary text-foreground font-medium"
+                ? "text-foreground font-medium"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className="size-3.5" />
+            {/* One pill slides between the tabs instead of each tab
+                switching its own background on and off. */}
+            {tab === value ? (
+              <motion.span
+                layoutId={`${id}-tab-pill`}
+                aria-hidden
+                className="bg-secondary rounded-pill absolute inset-0 -z-10"
+                transition={
+                  reduce
+                    ? { duration: 0 }
+                    : { type: "spring", stiffness: 480, damping: 36 }
+                }
+              />
+            ) : null}
+            <Icon className="size-3.5 transition-transform duration-300 group-hover/tab:-rotate-12" />
             {label}
           </button>
         ))}
