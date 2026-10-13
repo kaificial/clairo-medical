@@ -1,0 +1,169 @@
+/*
+ * Styles for isometric figures, after the Anatomy kit
+ * (https://skills.wheresryan.sh/anatomy, MIT). Every fill and stroke reads a
+ * token, and the tokens are mixed from the site's own palette, so a figure
+ * sits on the page in both themes without a colour of its own.
+ */
+
+.iso {
+  --anatomy-paper: var(--card);
+  --anatomy-face: color-mix(in oklab, var(--card), white 55%);
+  --anatomy-top: color-mix(in oklab, var(--card), white 45%);
+  --anatomy-shade-0: color-mix(in oklab, var(--card), var(--foreground) 15%);
+  --anatomy-shade-1: color-mix(in oklab, var(--card), var(--foreground) 11%);
+  --anatomy-shade-2: color-mix(in oklab, var(--card), var(--foreground) 7%);
+  --anatomy-shade-3: color-mix(in oklab, var(--card), var(--foreground) 3.5%);
+  --anatomy-lit-top: color-mix(in oklab, var(--card), white 70%);
+  --anatomy-lit-shade: color-mix(in oklab, var(--card), var(--foreground) 6%);
+  --anatomy-hi: var(--foreground);
+  --anatomy-mid: color-mix(in oklab, var(--card), var(--foreground) 52%);
+  --anatomy-lo: color-mix(in oklab, var(--card), var(--foreground) 30%);
+  --anatomy-faint: color-mix(in oklab, var(--card), var(--foreground) 15%);
+  --anatomy-lit: oklch(0.2 0.02 90);
+  --anatomy-halo: var(--foreground);
+  --anatomy-halo-opacity: 0.2;
+  --anatomy-dot: var(--foreground);
+  --anatomy-weight: 0.6px;
+  --anatomy-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.dark .iso {
+  --anatomy-face: color-mix(in oklab, var(--card), white 9%);
+  --anatomy-top: color-mix(in oklab, var(--card), white 5%);
+  --anatomy-shade-0: color-mix(in oklab, var(--card), black 40%);
+  --anatomy-shade-1: color-mix(in oklab, var(--card), black 30%);
+  --anatomy-shade-2: color-mix(in oklab, var(--card), black 19%);
+  --anatomy-shade-3: color-mix(in oklab, var(--card), black 9%);
+  --anatomy-lit-top: color-mix(in oklab, var(--card), white 14%);
+  --anatomy-lit-shade: color-mix(in oklab, var(--card), white 6%);
+  --anatomy-mid: color-mix(in oklab, var(--card), var(--foreground) 48%);
+  --anatomy-lo: color-mix(in oklab, var(--card), var(--foreground) 28%);
+  --anatomy-faint: color-mix(in oklab, var(--card), var(--foreground) 15%);
+  --anatomy-lit: white;
+  --anatomy-halo: black;
+  --anatomy-halo-opacity: 0.75;
+}
+
+.iso-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.iso-svg path,
+.iso-svg circle {
+  vector-effect: non-scaling-stroke;
+}
+
+.iso-fill {
+  fill: var(--anatomy-paper);
+  stroke: none;
+}
+
+.iso-solid[data-lit] > .iso-fill {
+  fill: var(--anatomy-face);
+}
+
+.iso-shade,
+.iso-top {
+  stroke: none;
+}
+
+.iso-shade[data-shade="0"] {
+  fill: var(--anatomy-shade-0);
+}
+
+.iso-shade[data-shade="1"] {
+  fill: var(--anatomy-shade-1);
+}
+
+.iso-shade[data-shade="2"] {
+  fill: var(--anatomy-shade-2);
+}
+
+.iso-shade[data-shade="3"] {
+  fill: var(--anatomy-shade-3);
+}
+
+.iso-top {
+  fill: var(--anatomy-top);
+}
+
+.iso-solid[data-lit] > .iso-top {
+  fill: var(--anatomy-lit-top);
+}
+
+.iso-solid[data-lit] > .iso-shade {
+  fill: var(--anatomy-lit-shade);
+}
+
+.iso-solid[data-lit] > .iso-line:last-child {
+  stroke: var(--anatomy-lit);
+}
+
+.iso-halo {
+  fill: var(--anatomy-halo);
+  stroke: none;
+  filter: blur(9px);
+  opacity: var(--anatomy-halo-opacity);
+  transform: translateY(3px);
+}
+
+.iso-line {
+  fill: none;
+  stroke: var(--anatomy-lo);
+  stroke-width: var(--anatomy-weight);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.iso-line[data-tone="hi"] {
+  stroke: var(--anatomy-hi);
+}
+
+.iso-line[data-tone="mid"] {
+  stroke: var(--anatomy-mid);
+}
+
+.iso-line[data-tone="lo"] {
+  stroke: var(--anatomy-lo);
+}
+
+.iso-line[data-tone="faint"] {
+  stroke: var(--anatomy-faint);
+}
+
+.iso-line[data-tone="lit"] {
+  stroke: var(--anatomy-lit);
+}
+
+.iso-dots circle {
+  fill: var(--anatomy-dot);
+  stroke: none;
+  opacity: 0.45;
+}
+
+.iso-dots[data-tone="hi"] circle {
+  opacity: 0.85;
+}
+
+.iso-dots[data-tone="lo"] circle {
+  opacity: 0.22;
+}
+
+.iso-face-text {
+  fill: var(--anatomy-mid);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+.iso-face-text[data-tone="lo"] {
+  fill: var(--anatomy-lo);
+}
+
+/* A figure sits straight on the page, with no card of its own. */
+
+.iso-figure {
+  margin: 0;
+}

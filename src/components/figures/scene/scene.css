@@ -1,0 +1,154 @@
+/* Colours for the isometric viewer, taken from the app's own palette so the
+   drawing looks like the real thing. */
+
+.sc {
+  --sc-paper: color-mix(in oklab, var(--card), white 80%);
+  --sc-raised: color-mix(in oklab, var(--card), white 35%);
+  --sc-sunken: var(--muted);
+  --sc-ink: color-mix(in oklab, var(--highlight) 90%, transparent);
+}
+
+.dark .sc {
+  --sc-paper: color-mix(in oklab, var(--card), white 12%);
+  --sc-raised: color-mix(in oklab, var(--card), white 5%);
+  --sc-sunken: color-mix(in oklab, var(--card), black 20%);
+  --sc-ink: color-mix(in oklab, var(--highlight) 70%, transparent);
+}
+
+.sc-logo {
+  fill: var(--foreground);
+}
+
+.sc-logo circle {
+  vector-effect: none;
+}
+
+.sc-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-steps {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.sc-step {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--foreground) 18%, transparent);
+  transition:
+    width 400ms var(--anatomy-ease),
+    background-color 400ms var(--anatomy-ease);
+}
+
+.sc-step[data-on] {
+  width: 18px;
+  background: var(--primary);
+}
+
+.sc-stage {
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  outline: none;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sc-stage:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 6px;
+}
+
+.sc-paper > .iso-top {
+  fill: var(--sc-paper);
+}
+
+.sc-raised > .iso-top {
+  fill: var(--sc-raised);
+}
+
+.sc-sunken > .iso-top {
+  fill: var(--sc-sunken);
+}
+
+.sc-tab > .iso-top {
+  fill: var(--secondary);
+}
+
+.sc-yellow > .iso-top {
+  fill: var(--primary);
+}
+
+.sc-yellow > .iso-shade {
+  fill: color-mix(in oklab, var(--primary), black 18%);
+}
+
+.sc-high > .iso-top {
+  fill: var(--caution);
+}
+
+.sc-high > .iso-shade {
+  fill: color-mix(in oklab, var(--caution), black 25%);
+}
+
+.sc-normal > .iso-top {
+  fill: var(--success);
+}
+
+.sc-normal > .iso-shade {
+  fill: color-mix(in oklab, var(--success), black 25%);
+}
+
+.sc-band > .iso-top,
+.sc-band > .iso-shade {
+  fill: color-mix(in oklab, var(--success) 45%, var(--card));
+}
+
+.sc-chip > .iso-top {
+  fill: var(--highlight);
+}
+
+.sc-stripe {
+  fill: var(--sc-ink);
+  stroke: none;
+}
+
+.sc-shadow {
+  fill: var(--anatomy-halo);
+  opacity: 0.22;
+  filter: blur(5px);
+}
+
+.iso-line.sc-text,
+.iso-line.sc-answer {
+  stroke-width: 1.6px;
+}
+
+.iso-line.sc-track {
+  stroke-width: 1.4px;
+}
+
+.sc .iso-face-text {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+/* On a dark page the printed lines need a step more ink to read. */
+.dark .sc .iso-line.sc-text[data-tone="faint"] {
+  stroke: var(--anatomy-lo);
+}
+
+.dark .sc .iso-line.sc-text[data-tone="lo"] {
+  stroke: var(--anatomy-mid);
+}
