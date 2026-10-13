@@ -1,0 +1,149 @@
+/* The main call to action: a plain yellow pill. On hover the label rolls up
+   letter by letter and the arrow slips out as a new one slides in. */
+.cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1.1rem 0 1.25rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition:
+    box-shadow 300ms ease,
+    transform 160ms ease;
+}
+
+.cta-primary[data-size="default"] {
+  height: 2.25rem;
+  padding: 0 0.9rem 0 1rem;
+}
+
+.cta-primary:hover {
+  box-shadow: 0 8px 20px -12px
+    color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.cta-primary:active {
+  transform: scale(0.98);
+}
+
+.cta-roll {
+  display: inline-flex;
+  overflow: hidden;
+  height: 1.25em;
+  line-height: 1.25em;
+}
+
+.cta-roll-char {
+  position: relative;
+  display: inline-block;
+  transition: translate 440ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.cta-roll-char::after {
+  content: attr(data-char);
+  position: absolute;
+  top: 100%;
+  left: 0;
+}
+
+.cta-arrows {
+  display: grid;
+  overflow: hidden;
+  width: 1rem;
+}
+
+.cta-arrow {
+  grid-area: 1 / 1;
+  width: 1rem;
+  height: 1rem;
+  transition: translate 420ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.cta-arrow-next {
+  translate: -120% 0;
+  transition-delay: 60ms;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .cta-primary:hover .cta-roll-char {
+    translate: 0 -100%;
+  }
+
+  .cta-primary:hover .cta-arrow {
+    translate: 120% 0;
+  }
+
+  .cta-primary:hover .cta-arrow-next {
+    translate: 0 0;
+  }
+}
+
+/* "Try the example": a sheet of paper with a small folded corner. On hover a
+   second page slides out from behind it. */
+.cta-paper {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  height: 2.5rem;
+  padding: 0 1.25rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.cta-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 0.5rem;
+  transition:
+    translate 480ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    rotate 480ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.cta-sheet[data-sheet="back"] {
+  background: color-mix(in oklab, var(--secondary), var(--foreground) 6%);
+}
+
+.cta-sheet[data-sheet="front"] {
+  background: var(--secondary);
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+}
+
+.cta-fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  border-bottom-left-radius: 2px;
+  background: linear-gradient(
+    225deg,
+    transparent 50%,
+    color-mix(in oklab, var(--secondary), var(--foreground) 16%) 50%
+  );
+  transition:
+    width 360ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    height 360ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.cta-paper:active .cta-sheet[data-sheet="front"] {
+  translate: 0 1px;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .cta-paper:hover .cta-sheet[data-sheet="back"] {
+    translate: 4px 3px;
+    rotate: 3deg;
+  }
+
+  .cta-paper:hover .cta-fold {
+    width: 13px;
+    height: 13px;
+  }
+}
