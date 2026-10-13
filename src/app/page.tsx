@@ -1,12 +1,21 @@
-import { ArrowRight } from "lucide-react";
-import Link from "next/link";
-
+import { PaperCta, PrimaryCta } from "@/components/cta";
+import { AppScene } from "@/components/figures/scene/figure";
 import { HeroMotif } from "@/components/hero-motif";
-import { HeroPreview } from "@/components/hero-preview";
+import {
+  InViewMarker,
+  PointerDrift,
+  SpotlightItem,
+} from "@/components/motion-bits";
 import { PageTransition } from "@/components/page-transition";
 import { Reveal } from "@/components/reveal";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+/**
+ * The hero arrives in a short cascade: headline, then the line under it, then
+ * the buttons.
+ */
+const ENTER =
+  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-3 motion-safe:fill-mode-both motion-safe:duration-700";
 
 const STEPS = [
   {
@@ -25,12 +34,12 @@ const STEPS = [
 
 function StartButton({ className }: { className?: string }) {
   return (
-    <Button asChild size="lg" className={cn("rounded-pill", className)}>
-      <Link href="/viewer" transitionTypes={["nav-forward"]}>
-        Start analysis
-        <ArrowRight />
-      </Link>
-    </Button>
+    <PrimaryCta
+      href="/viewer"
+      transitionTypes={["nav-forward"]}
+      label="Start analysis"
+      className={className}
+    />
   );
 }
 
@@ -39,42 +48,51 @@ export default function Home() {
     <PageTransition>
       <main className="relative flex flex-1 flex-col overflow-x-clip">
         <section>
-          <div className="mx-auto grid max-w-5xl grid-cols-1 items-start gap-12 px-6 pt-28 pb-16 sm:pt-36 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
+          <div className="mx-auto grid max-w-5xl grid-cols-1 items-center gap-10 px-6 pt-28 pb-16 sm:pt-32 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.25fr)] lg:gap-6">
             <div className="max-w-xl">
               <div className="relative">
-                <HeroMotif className="pointer-events-none absolute top-1/2 left-1/2 -z-10 aspect-square w-[max(900px,110vw)] max-w-none -translate-x-1/2 -translate-y-1/2 select-none lg:w-[1150px]" />
-                <h1 className="font-serif text-[clamp(2.5rem,5.5vw,4.25rem)] leading-[1.15] tracking-tight text-balance">
+                <PointerDrift className="pointer-events-none absolute top-1/2 left-1/2 -z-10 -translate-x-1/2 -translate-y-1/2">
+                  <HeroMotif className="aspect-square w-[max(900px,110vw)] max-w-none select-none lg:w-[1150px]" />
+                </PointerDrift>
+                <h1
+                  className={cn(
+                    "font-serif text-[clamp(2.5rem,5.5vw,4.25rem)] leading-[1.15] tracking-tight text-balance lg:text-[3.6rem]",
+                    ENTER,
+                  )}
+                >
                   Your medical report,{" "}
-                  <mark className="bg-highlight text-highlight-foreground rounded-[0.15em] box-decoration-clone px-1.5">
+                  <mark className="marker marker-swipe rounded-[0.15em] box-decoration-clone px-1.5">
                     in plain language
                   </mark>
                 </h1>
               </div>
 
-              <p className="text-muted-foreground mt-6 max-w-md text-lg text-pretty">
+              <p
+                className={cn(
+                  "text-muted-foreground mt-5 max-w-sm text-base leading-relaxed text-pretty motion-safe:delay-150",
+                  ENTER,
+                )}
+              >
                 See which results are out of range. Highlight a term for a
                 definition. Ask questions and get answers with citations.
               </p>
 
-              <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <div
+                className={cn(
+                  "mt-9 flex flex-wrap items-center gap-4 motion-safe:delay-300",
+                  ENTER,
+                )}
+              >
                 <StartButton />
-                <Button
-                  asChild
-                  size="lg"
-                  variant="secondary"
-                  className="rounded-pill"
-                >
-                  <Link
-                    href="/viewer?example=1"
-                    transitionTypes={["nav-forward"]}
-                  >
-                    Try the example
-                  </Link>
-                </Button>
+                <PaperCta
+                  href="/viewer?example=1"
+                  transitionTypes={["nav-forward"]}
+                  label="Try the example"
+                />
               </div>
             </div>
 
-            <HeroPreview className="lg:mt-3 lg:justify-self-end" />
+            <AppScene className={cn("w-full motion-safe:delay-500", ENTER)} />
           </div>
         </section>
 
@@ -86,18 +104,21 @@ export default function Home() {
             <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
             <ol className="border-border bg-border mt-8 grid gap-px overflow-hidden rounded-xl border sm:grid-cols-3">
               {STEPS.map((step, index) => (
-                <li
+                <SpotlightItem
                   key={step.title}
                   className="bg-card flex flex-col gap-3 p-6"
                 >
-                  <span className="text-muted-foreground font-mono text-xs">
+                  <span className="text-muted-foreground flex items-center gap-2 font-mono text-xs">
                     {String(index + 1).padStart(2, "0")}
+                    <span className="bg-foreground/20 group-hover/spot:bg-foreground/50 h-px w-4 origin-left transition-[width,background-color] duration-500 group-hover/spot:w-10" />
                   </span>
-                  <h3 className="text-base font-medium">{step.title}</h3>
+                  <h3 className="text-base font-medium transition-transform duration-500 group-hover/spot:translate-x-0.5">
+                    {step.title}
+                  </h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {step.body}
                   </p>
-                </li>
+                </SpotlightItem>
               ))}
             </ol>
           </Reveal>
@@ -125,7 +146,8 @@ export default function Home() {
         <section className="mx-auto w-full max-w-2xl px-6 py-16 text-center">
           <Reveal>
             <p className="font-serif text-3xl tracking-tight text-balance">
-              Bring the report you don't understand yet.
+              Bring the report you{" "}
+              <InViewMarker>don't understand yet.</InViewMarker>
             </p>
             <StartButton className="mt-7" />
           </Reveal>

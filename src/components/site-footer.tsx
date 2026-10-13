@@ -1,14 +1,15 @@
 import Link from "next/link";
 
-import { Logo } from "@/components/logo";
+import { Logo, LOGO_SPIN } from "@/components/logo";
 import { NAV_LINKS } from "@/components/nav-links";
+import { cn } from "@/lib/utils";
 
 export function SiteFooter() {
   return (
     <footer className="border-border/60 mt-24 border-t">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-2">
-          <Logo className="size-5" />
+        <div className="group flex items-center gap-2">
+          <Logo className={cn("size-5", LOGO_SPIN)} />
           <span className="text-sm font-medium tracking-tight lowercase">
             Clairo
           </span>
@@ -25,7 +26,7 @@ export function SiteFooter() {
               key={item.href}
               href={item.href}
               transitionTypes={["nav-back"]}
-              className="hover:text-foreground"
+              className="hover:text-foreground relative transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-300 hover:after:scale-x-100"
             >
               {item.label}
             </Link>

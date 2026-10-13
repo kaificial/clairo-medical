@@ -1,9 +1,18 @@
 "use client";
 
+import {
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+} from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
-import { Logo } from "@/components/logo";
+import { PrimaryCta } from "@/components/cta";
+import { Logo, LOGO_SPIN } from "@/components/logo";
 import { NAV_LINKS } from "@/components/nav-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -12,41 +21,79 @@ import { cn } from "@/lib/utils";
 const GITHUB_URL = "https://github.com/kaificial/clairo-medical";
 
 const LINK =
-  "hover:text-foreground focus-visible:ring-ring/50 rounded-sm transition-colors outline-none focus-visible:ring-[3px]";
+  "hover:text-foreground focus-visible:ring-ring/50 rounded-pill relative px-3 py-1.5 transition-colors outline-none focus-visible:ring-[3px]";
+
+/**
+ * A soft pill that slides under whichever link the pointer is on, so moving
+ * along the nav feels like one continuous gesture.
+ */
+function HoverPill() {
+  return (
+    <motion.span
+      layoutId="nav-hover"
+      aria-hidden
+      className="bg-foreground/[0.06] rounded-pill absolute inset-0 -z-10"
+      transition={{ type: "spring", stiffness: 500, damping: 38 }}
+    />
+  );
+}
 
 export function SiteHeader() {
   // The analysis workspace holds the PDF and chat side by side at max-w-7xl,
   // so the nav above it widens to match instead of looking cramped over it.
   const isAnalysis = usePathname()?.startsWith("/viewer");
+  const reduce = useReducedMotion();
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const { scrollY, scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, {
+    stiffness: 200,
+    damping: 40,
+    restDelta: 0.001,
+  });
+
+  useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 12));
 
   return (
     // Named so it can be held still while the page under it changes.
     <header className="sticky top-0 z-50 px-4 pt-4 [view-transition-name:site-header]">
       <div
         className={cn(
-          "rounded-pill border-border/70 bg-card/75 mx-auto flex h-14 items-center justify-between gap-4 border py-2 pr-3 pl-5 backdrop-blur-md transition-[max-width] duration-200",
+          "rounded-pill border-border/70 bg-card relative mx-auto flex h-14 items-center justify-between gap-4 border py-2 pr-3 pl-5 transition-[max-width,box-shadow] duration-300",
           isAnalysis ? "max-w-7xl" : "max-w-5xl",
+          scrolled && "shadow-[0_8px_30px_-12px_rgb(0_0_0/0.18)]",
         )}
       >
+        {/* How far down the page you are, as a hairline along the bottom. */}
+        <motion.span
+          aria-hidden
+          className="bg-foreground/25 absolute inset-x-8 -bottom-px h-px origin-left"
+          style={{ scaleX: reduce ? scrollYProgress : progress }}
+        />
         <Link
           href="/"
           transitionTypes={["nav-back"]}
-          className="rounded-pill focus-visible:ring-ring/50 flex items-center gap-2 outline-none focus-visible:ring-[3px]"
+          className="group rounded-pill focus-visible:ring-ring/50 flex items-center gap-2 outline-none focus-visible:ring-[3px]"
         >
-          <Logo className="size-6" />
+          <Logo className={cn("size-6", LOGO_SPIN)} />
           <span className="text-[0.95rem] font-medium tracking-tight lowercase">
             Clairo
           </span>
         </Link>
 
-        <nav className="text-muted-foreground hidden items-center gap-7 text-sm sm:flex">
+        <nav
+          className="text-muted-foreground isolate hidden items-center gap-1 text-sm sm:flex"
+          onPointerLeave={() => setHovered(null)}
+        >
           {NAV_LINKS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               transitionTypes={["nav-back"]}
               className={LINK}
+              onPointerEnter={() => setHovered(item.href)}
             >
+              {hovered === item.href ? <HoverPill /> : null}
               {item.label}
             </Link>
           ))}
@@ -55,7 +102,9 @@ export function SiteHeader() {
             target="_blank"
             rel="noreferrer"
             className={LINK}
+            onPointerEnter={() => setHovered(GITHUB_URL)}
           >
+            {hovered === GITHUB_URL ? <HoverPill /> : null}
             GitHub
           </a>
         </nav>
@@ -73,11 +122,12 @@ export function SiteHeader() {
             </a>
           </Button>
           <ThemeToggle />
-          <Button asChild className="rounded-pill">
-            <Link href="/viewer" transitionTypes={["nav-forward"]}>
-              Start analysis
-            </Link>
-          </Button>
+          <PrimaryCta
+            href="/viewer"
+            transitionTypes={["nav-forward"]}
+            label="Start analysis"
+            size="default"
+          />
         </div>
       </div>
     </header>
