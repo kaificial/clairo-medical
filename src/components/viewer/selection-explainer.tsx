@@ -1,9 +1,9 @@
 "use client";
 
-import { Loader2, Pencil, X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 
-import { Logo } from "@/components/logo";
+import { Logo, LogoLoader } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
   AiUnavailableError,
@@ -13,21 +13,33 @@ import {
 } from "@/lib/ai/client";
 import type { Chunk } from "@/lib/pdf";
 import type { Search } from "@/lib/retrieval";
+import { cn } from "@/lib/utils";
 
 import { AnswerText } from "./answer-text";
-import { useTextSelection, type TextSelection } from "./use-text-selection";
+import {
+  useRangePlace,
+  useTextSelection,
+  type TextSelection,
+} from "./use-text-selection";
 
 const MAX_PASSAGES = 4;
 const PANEL_WIDTH = 320;
 const PILL_WIDTH = 220;
 const GAP = 8;
 const EDGE = 12;
+/**
+ * While its words are scrolled out of sight the tooltip fades away with them,
+ * rather than hanging over the toolbar, and comes back when they return.
+ */
+const TUCKED =
+  "transition-opacity data-[hidden]:pointer-events-none data-[hidden]:opacity-0";
 
 type Mode = "explain" | "exact";
 
 interface Explanation {
   term: string;
-  rect: DOMRect;
+  /** The highlighted words, so the panel can stay pinned to them. */
+  range: Range;
   mode: Mode;
   text: string;
   status: "streaming" | "done" | "error";
@@ -110,6 +122,9 @@ export function SelectionExplainer({
 }) {
   const selection = useTextSelection(containerRef);
   const [explanation, setExplanation] = useState<Explanation | null>(null);
+  // Whatever is on screen follows its words: the open explanation if there is
+  // one, otherwise the Explain pill for the current selection.
+  const place = useRangePlace(explanation?.range ?? selection?.range ?? null);
   const [unavailable, setUnavailable] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
 
@@ -144,14 +159,14 @@ export function SelectionExplainer({
     );
   }
 
-  async function explain({ text: term, rect }: TextSelection, mode: Mode) {
+  async function explain({ text: term, range }: TextSelection, mode: Mode) {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
 
     setExplanation({
       term,
-      rect,
+      range,
       mode,
       text: "",
       status: "streaming",
@@ -236,7 +251,8 @@ export function SelectionExplainer({
   if (unavailable) return null;
 
   if (explanation) {
-    const { top, left } = anchor(explanation.rect, PANEL_WIDTH);
+    if (!place) return null;
+    const { top, left } = anchor(place.rect, PANEL_WIDTH);
     const shown =
       explanation.showing === "simple" && explanation.simple !== null
         ? explanation.simple
@@ -250,7 +266,11 @@ export function SelectionExplainer({
         aria-label={`What ${explanation.term} means`}
         style={{ top, left, width: PANEL_WIDTH }}
         onMouseDown={keepSelection}
-        className="bg-popover animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 fixed z-50 flex origin-top flex-col gap-2.5 rounded-2xl border p-3.5 shadow-lg duration-150"
+        data-hidden={place.visible ? undefined : ""}
+        className={cn(
+          "bg-popover animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 fixed z-40 flex origin-top flex-col gap-2.5 rounded-2xl border p-3.5 shadow-lg duration-150",
+          TUCKED,
+        )}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5">
@@ -275,7 +295,7 @@ export function SelectionExplainer({
           <AnswerText text={shown} onJump={onJump} />
           {(explanation.status === "streaming" && shown.length === 0) ||
           explanation.simplifying ? (
-            <Loader2 className="inline size-3.5 animate-spin" />
+            <LogoLoader className="size-4" />
           ) : null}
         </p>
 
@@ -326,9 +346,9 @@ export function SelectionExplainer({
     );
   }
 
-  if (!selection || !chunks) return null;
+  if (!selection || !chunks || !place) return null;
 
-  const { top, left } = anchor(selection.rect, PILL_WIDTH);
+  const { top, left } = anchor(place.rect, PILL_WIDTH);
 
   return (
     <div
@@ -336,7 +356,11 @@ export function SelectionExplainer({
       aria-label={`Explain or define "${selection.text}"`}
       style={{ top, left, width: PILL_WIDTH }}
       onMouseDown={keepSelection}
-      className="bg-popover animate-in fade-in-0 zoom-in-95 rounded-pill fixed z-50 flex items-stretch overflow-hidden border shadow-md duration-100"
+      data-hidden={place.visible ? undefined : ""}
+      className={cn(
+        "bg-popover animate-in fade-in-0 zoom-in-95 rounded-pill fixed z-40 flex items-stretch overflow-hidden border shadow-md duration-100",
+        TUCKED,
+      )}
     >
       <button
         type="button"
